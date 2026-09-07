@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:ar_flutter_plugin_2/ar_flutter_plugin.dart';
 import 'package:ar_flutter_plugin_2/datatypes/config_planedetection.dart';
 import 'package:ar_flutter_plugin_2/managers/ar_anchor_manager.dart';
 import 'package:ar_flutter_plugin_2/managers/ar_location_manager.dart';
@@ -27,6 +26,7 @@ import '../widgets/opening_placement_dialog.dart' show showOpeningPlacementDialo
 import '../widgets/scanner_plan_opening_hint.dart';
 import '../widgets/scanner_guide_painter.dart';
 import '../scanner/adapters/ar_scanner_adapter.dart';
+import '../scanner/widgets/archscan_ar_view.dart';
 import 'basic_scanner_screen.dart';
 import 'floor_plan_viewer_screen.dart';
 
@@ -381,6 +381,7 @@ class _ARScannerScreenState extends State<ARScannerScreen>
 
   void _onARViewCreated(
     int generation,
+    int viewId,
     ARSessionManager arSessionManager,
     ARObjectManager arObjectManager,
     ARAnchorManager arAnchorManager,
@@ -400,6 +401,7 @@ class _ARScannerScreenState extends State<ARScannerScreen>
     _arObjectManager = arObjectManager;
 
     _arScannerAdapter.attachARSession(
+      viewId: viewId,
       sessionManager: arSessionManager,
       objectManager: arObjectManager,
     );
@@ -607,16 +609,17 @@ class _ARScannerScreenState extends State<ARScannerScreen>
           // CAPA 1: VIEWPORT AR REAL
           // ============================================================
 
-          ARView(
+          ArchScanArView(
             key: ValueKey<int>(arViewGeneration),
-            onARViewCreated: (
+            onCreated: (
+              viewId,
               sessionManager,
               objectManager,
               anchorManager,
               locationManager,
-            ) =>
-                _onARViewCreated(
+            ) => _onARViewCreated(
               arViewGeneration,
+              viewId,
               sessionManager,
               objectManager,
               anchorManager,
