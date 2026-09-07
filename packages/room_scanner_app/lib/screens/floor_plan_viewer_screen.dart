@@ -37,6 +37,8 @@ class FloorPlanViewerScreen extends StatefulWidget {
 
 class _FloorPlanViewerScreenState
     extends State<FloorPlanViewerScreen> with _PlanWallEditing {
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
+  PersistentBottomSheetController<void>? _featureSheetController;
   double _minX = 0.0;
   double _minZ = 0.0;
   double _scale = 1.0;
@@ -48,6 +50,9 @@ class _FloorPlanViewerScreenState
   @override
   bool _touchTransformMode = false;
   Offset _touchStartFocalPoint = Offset.zero;
+  Offset _touchNavigationFocalPoint = Offset.zero;
+  double _touchNavigationScale = 1;
+  bool _touchNavigating = false;
   String? _touchTransformRoomId;
   int _touchSnapCount = 0;
   bool _roomPlanSupported = false;
@@ -146,6 +151,9 @@ class _FloorPlanViewerScreenState
     ScaleStartDetails details,
     List<RoomModel> rooms,
   ) {
+    _touchNavigationFocalPoint = details.focalPoint;
+    _touchNavigationScale = 1;
+    _touchNavigating = false;
     final planePoint = _inverseTransform(details.localFocalPoint);
     final roomId = _getRoomAtPosition(planePoint, rooms) ?? _selectedRoomId;
     if (roomId == null ||
@@ -162,6 +170,31 @@ class _FloorPlanViewerScreenState
   }
 
   void _updateTouchTransform(ScaleUpdateDetails details) {
+    if (details.pointerCount > 1) {
+      final provider = context.read<FloorPlanProvider>();
+      if (!_touchNavigating) {
+        provider.cancelTouchRoomTransform();
+        _touchTransformRoomId = null;
+        _touchSnapCount = 0;
+        _touchNavigating = true;
+        _touchNavigationFocalPoint = details.focalPoint;
+        _touchNavigationScale = details.scale;
+        return;
+      }
+      final delta = details.focalPoint - _touchNavigationFocalPoint;
+      final next = _planViewport.value.clone();
+      next.storage[12] += delta.dx;
+      next.storage[13] += delta.dy;
+      _planViewport.value = next;
+      final scaleFactor = details.scale / _touchNavigationScale;
+      if (scaleFactor.isFinite && scaleFactor > 0) {
+        _zoomPlan(scaleFactor);
+      }
+      _touchNavigationFocalPoint = details.focalPoint;
+      _touchNavigationScale = details.scale;
+      return;
+    }
+    if (_touchNavigating) return;
     final roomId = _touchTransformRoomId;
     if (roomId == null) return;
     final delta = details.localFocalPoint - _touchStartFocalPoint;
@@ -181,6 +214,10 @@ class _FloorPlanViewerScreenState
   }
 
   Future<void> _endTouchTransform() async {
+    if (_touchNavigating) {
+      _touchNavigating = false;
+      return;
+    }
     final roomId = _touchTransformRoomId;
     if (roomId == null) return;
     _touchTransformRoomId = null;
@@ -431,10 +468,20 @@ class _FloorPlanViewerScreenState
         ? localizations.selectedDoor
         : localizations.selectedWindow;
 
-    final action = await showModalBottomSheet<_FeatureMenuAction>(
-      context: context,
-      isScrollControlled: true,
-      builder: (bottomSheetContext) {
+    final previousController = _featureSheetController;
+    if (previousController != null) {
+      previousController.close();
+      await previousController.closed;
+      if (!mounted) return;
+    }
+    _FeatureMenuAction? action;
+    late PersistentBottomSheetController<void> controller;
+    void selectAction(_FeatureMenuAction selected) {
+      action = selected;
+      controller.close();
+    }
+    controller = _scaffoldKey.currentState!.showBottomSheet<void>(
+      (bottomSheetContext) {
         return SafeArea(
           child: SingleChildScrollView(child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
@@ -469,10 +516,8 @@ class _FloorPlanViewerScreenState
                   mainAxisExtent: 52,
                   children: [
                     OutlinedButton.icon(
-                      onPressed: () => Navigator.pop(
-                        bottomSheetContext,
-                        _FeatureMenuAction.editGeometry,
-                      ),
+                      onPressed: () =>
+                          selectAction(_FeatureMenuAction.editGeometry),
                       icon: const Icon(Icons.straighten),
                       label: Text(
                         localizations.editOpeningDimensions,
@@ -487,10 +532,7 @@ class _FloorPlanViewerScreenState
                         maxLines: 2,
                         textAlign: TextAlign.center,
                       ),
-                      onPressed: () => Navigator.pop(
-                        bottomSheetContext,
-                        _FeatureMenuAction.move,
-                      ),
+                      onPressed: () => selectAction(_FeatureMenuAction.move),
                     ),
                     OutlinedButton.icon(
                       icon: const Icon(Icons.delete_outline),
@@ -499,17 +541,12 @@ class _FloorPlanViewerScreenState
                         maxLines: 2,
                         textAlign: TextAlign.center,
                       ),
-                      onPressed: () => Navigator.pop(
-                        bottomSheetContext,
-                        _FeatureMenuAction.delete,
-                      ),
+                      onPressed: () => selectAction(_FeatureMenuAction.delete),
                     ),
                     if (feature.type == FeatureType.door)
                       OutlinedButton.icon(
-                        onPressed: () => Navigator.pop(
-                          bottomSheetContext,
-                          _FeatureMenuAction.toggleHinge,
-                        ),
+                        onPressed: () =>
+                            selectAction(_FeatureMenuAction.toggleHinge),
                         icon: const Icon(Icons.flip),
                         label: Text(
                           localizations.changeDoorHingeSide,
@@ -524,8 +561,7 @@ class _FloorPlanViewerScreenState
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton.icon(
-                      onPressed: () => Navigator.pop(
-                        bottomSheetContext,
+                      onPressed: () => selectAction(
                         _FeatureMenuAction.chooseOpeningDirection,
                       ),
                       icon: const Icon(Icons.rotate_left),
@@ -544,8 +580,7 @@ class _FloorPlanViewerScreenState
                   child: FilledButton.icon(
                     onPressed: feature.isConnected
                         ? null
-                        : () => Navigator.pop(
-                              bottomSheetContext,
+                        : () => selectAction(
                               _FeatureMenuAction.continueScanning,
                             ),
                     icon: const Icon(Icons.add_road_rounded),
@@ -561,7 +596,14 @@ class _FloorPlanViewerScreenState
           )),
         );
       },
+      enableDrag: true,
+      showDragHandle: true,
     );
+    _featureSheetController = controller;
+    await controller.closed;
+    if (identical(_featureSheetController, controller)) {
+      _featureSheetController = null;
+    }
 
     if (!mounted) return;
 
@@ -2221,6 +2263,7 @@ class _FloorPlanViewerScreenState
     final localizations = AppLocalizations.of(context)!;
 
     return Scaffold(
+      key: _scaffoldKey,
       appBar: AppBar(
         title: Text(
           widget.selectContinuationOpening
