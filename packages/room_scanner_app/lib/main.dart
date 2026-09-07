@@ -9,6 +9,7 @@ import 'providers/measurement_settings_provider.dart';
 import 'providers/project_provider.dart';
 import 'providers/scanner_provider.dart';
 import 'screens/dashboard_screen.dart';
+import 'scanner/scanner_composition.dart';
 import 'widgets/archscan_logo.dart';
 
 typedef RoomScannerInitializer =
@@ -16,6 +17,7 @@ typedef RoomScannerInitializer =
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  configureScannerComposition();
   runApp(const RoomScannerBootstrap());
 }
 
