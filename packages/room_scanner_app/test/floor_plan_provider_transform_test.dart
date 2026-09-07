@@ -104,6 +104,20 @@ void main() {
       expect(shared.any((w) => w.coverage == SharedWallCoverage.partial), isTrue);
     });
 
+    test('no separa ambientes acomodados con una junta pequeña', () async {
+      final first = _connectedRooms().first.copyWith(features: const []);
+      final second = _independentRoom(offsetX: 2.08);
+      final provider = FloorPlanProvider()..loadProject(
+        uuid: 'arrange-small-gap', name: 'Plan', rooms: [first, second],
+      );
+      addTearDown(provider.dispose);
+      final original = provider.completedRooms.map((r) => r.toJson()).toList();
+
+      expect(await provider.autoArrangeRooms(spacing: 1), isFalse);
+      expect(provider.completedRooms.map((r) => r.toJson()).toList(), original);
+      expect(provider.canUndoTransform, isFalse);
+    });
+
     test('separa escaneos históricos superpuestos sin conexión', () async {
       final first = _connectedRooms().first.copyWith(features: const []);
       final provider = FloorPlanProvider()..loadProject(
