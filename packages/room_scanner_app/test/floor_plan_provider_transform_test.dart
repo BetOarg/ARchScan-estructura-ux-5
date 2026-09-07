@@ -843,6 +843,29 @@ void main() {
       expect(provider.canUndoTransform, isFalse);
     });
 
+    test('conserva la última posición válida al atravesar otro ambiente',
+        () async {
+      final anchor = _connectedRooms().first.copyWith(features: const []);
+      final provider = FloorPlanProvider()
+        ..loadProject(
+          uuid: 'project-touch-last-valid',
+          name: 'Casa con límite seguro',
+          rooms: [anchor, _independentRoom(offsetX: 4)],
+        );
+      addTearDown(provider.dispose);
+
+      expect(provider.beginTouchRoomTransform('room-c'), isTrue);
+      expect(provider.updateTouchRoomTransform(
+        roomId: 'room-c', offsetX: -1.7, offsetZ: 0, angleDegrees: 0,
+      ), isTrue);
+      expect(provider.updateTouchRoomTransform(
+        roomId: 'room-c', offsetX: -2.3, offsetZ: 0, angleDegrees: 0,
+      ), isTrue);
+      expect(await provider.endTouchRoomTransform(roomId: 'room-c'), isTrue);
+      expect(provider.completedRooms.last.points.first.x, greaterThanOrEqualTo(2));
+      expect(provider.canUndoTransform, isTrue);
+    });
+
     test(
       'la corrección táctil mueve solo el ambiente seleccionado y conserva la abertura anclada',
       () async {

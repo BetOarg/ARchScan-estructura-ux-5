@@ -160,6 +160,7 @@ class FloorPlanProvider extends ChangeNotifier {
   final List<_TransformHistoryEntry> _transformRedoHistory = [];
 
   List<RoomModel>? _touchTransformBefore;
+  List<RoomModel>? _touchTransformLastValid;
   String? _touchTransformRoomId;
   int _touchTransformSnapCount = 0;
 
@@ -384,12 +385,14 @@ class FloorPlanProvider extends ChangeNotifier {
     await _persist();
   }
 
-  /// Prepara un contorno abierto para continuar desde uno de sus extremos.
+  /// Prepara un contorno para continuar desde una esquina válida.
   ///
   /// El scanner siempre agrega puntos al final de la lista. Si se elige el
   /// primer vértice, el recorrido se invierte sin modificar coordenadas,
   /// medidas, aberturas ni el ID histórico del ambiente. Los vértices
-  /// intermedios se rechazan porque producirían una bifurcación.
+  /// intermedios de un contorno abierto se rechazan porque producirían una
+  /// bifurcación. En un ambiente cerrado se abre la pared siguiente a la
+  /// esquina elegida y se rota la lista para conservar toda la geometría.
   RoomModel? prepareOpenRoomContinuation({
     required String roomId,
     required int vertexIndex,
@@ -397,7 +400,17 @@ class FloorPlanProvider extends ChangeNotifier {
     final room = _completedRooms
         .where((candidate) => candidate.id == roomId)
         .firstOrNull;
-    if (room == null || room.isClosed || room.points.length < 2) return null;
+    if (room == null || room.points.length < 2) return null;
+    if (vertexIndex < 0 || vertexIndex >= room.points.length) return null;
+    if (room.isClosed) {
+      return room.copyWith(
+        points: [
+          for (var offset = 1; offset <= room.points.length; offset++)
+            room.points[(vertexIndex + offset) % room.points.length],
+        ],
+        isClosed: false,
+      );
+    }
     if (vertexIndex == room.points.length - 1) return room;
     if (vertexIndex != 0) return null;
     return room.copyWith(points: room.points.reversed.toList());
@@ -419,7 +432,11 @@ class FloorPlanProvider extends ChangeNotifier {
 
     if (expectedOpenRoom != null &&
         jsonEncode(_completedRooms[index].toJson()) !=
-            jsonEncode(expectedOpenRoom.toJson())) {
+            jsonEncode(expectedOpenRoom.toJson()) &&
+        !_matchesContinuationSource(
+          _completedRooms[index],
+          expectedOpenRoom,
+        )) {
       return false;
     }
 
@@ -427,6 +444,26 @@ class FloorPlanProvider extends ChangeNotifier {
     notifyListeners();
     await _persist();
     return true;
+  }
+
+  bool _matchesContinuationSource(RoomModel current, RoomModel prepared) {
+    if (current.id != prepared.id ||
+        current.name != prepared.name ||
+        current.type != prepared.type ||
+        current.points.length != prepared.points.length ||
+        jsonEncode(current.features.map((f) => f.toJson()).toList()) !=
+            jsonEncode(prepared.features.map((f) => f.toJson()).toList())) {
+      return false;
+    }
+    const tolerance = 0.000001;
+    return prepared.points.every(
+      (point) => current.points.any(
+        (candidate) =>
+            (candidate.x - point.x).abs() <= tolerance &&
+            (candidate.y - point.y).abs() <= tolerance &&
+            (candidate.z - point.z).abs() <= tolerance,
+      ),
+    );
   }
 
   /// Guarda un ambiente escaneado desde una puerta o ventana existente.
@@ -1136,6 +1173,7 @@ class FloorPlanProvider extends ChangeNotifier {
       return false;
     }
     _touchTransformBefore = List<RoomModel>.from(_completedRooms);
+    _touchTransformLastValid = List<RoomModel>.from(_completedRooms);
     _touchTransformRoomId = roomId;
     _touchTransformSnapCount = 0;
     return true;
@@ -1185,6 +1223,19 @@ class FloorPlanProvider extends ChangeNotifier {
       offsetZ: offsetZ,
     );
     _touchTransformSnapCount = _applyLiveMagneticSnap(roomId);
+    final movedRoomIndex =
+        _completedRooms.indexWhere((room) => room.id == roomId);
+    final hasOverlap = movedRoomIndex == -1 ||
+        _completedRooms.indexed.any((entry) {
+          if (entry.$1 == movedRoomIndex) return false;
+          return _polygonsHaveInteriorOverlap(
+            _completedRooms[movedRoomIndex].points,
+            entry.$2.points,
+          );
+        });
+    if (!hasOverlap) {
+      _touchTransformLastValid = List<RoomModel>.from(_completedRooms);
+    }
     notifyListeners();
     return true;
   }
@@ -1277,15 +1328,20 @@ class FloorPlanProvider extends ChangeNotifier {
       );
     });
 
+    final lastValid = _touchTransformLastValid;
     _touchTransformBefore = null;
+    _touchTransformLastValid = null;
     _touchTransformRoomId = null;
     _touchTransformSnapCount = 0;
     if (invalid) {
       _completedRooms
         ..clear()
-        ..addAll(before);
+        ..addAll(lastValid ?? before);
       notifyListeners();
-      return false;
+      if (_sameRoomSnapshot(before, _completedRooms)) return false;
+      _recordTransform(before);
+      await _persist();
+      return true;
     }
 
     _recordTransform(before);
@@ -1297,6 +1353,7 @@ class FloorPlanProvider extends ChangeNotifier {
   void cancelTouchRoomTransform() {
     final before = _touchTransformBefore;
     _touchTransformBefore = null;
+    _touchTransformLastValid = null;
     _touchTransformRoomId = null;
     _touchTransformSnapCount = 0;
     if (before == null) return;

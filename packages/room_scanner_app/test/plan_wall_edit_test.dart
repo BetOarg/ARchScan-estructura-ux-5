@@ -192,4 +192,50 @@ void main() {
     );
   });
 
+  test('closed room can continue from any selected corner', () {
+    final closed = room(
+      'closed',
+      [p(0, 0), p(3, 0), p(3, 2), p(0, 2)],
+    );
+    final plan = provider([closed]);
+    addTearDown(plan.dispose);
+
+    for (var vertex = 0; vertex < closed.points.length; vertex++) {
+      final prepared = plan.prepareOpenRoomContinuation(
+        roomId: 'closed',
+        vertexIndex: vertex,
+      );
+      expect(prepared, isNotNull);
+      expect(prepared!.isClosed, isFalse);
+      expect(prepared.points, hasLength(closed.points.length));
+      expect(prepared.points.last, closed.points[vertex]);
+    }
+  });
+
+  test('saved continuation replaces its cyclic closed source safely', () async {
+    final closed = room(
+      'closed-save',
+      [p(0, 0), p(3, 0), p(3, 2), p(0, 2)],
+    );
+    final plan = provider([closed]);
+    addTearDown(plan.dispose);
+    final prepared = plan.prepareOpenRoomContinuation(
+      roomId: 'closed-save',
+      vertexIndex: 2,
+    )!;
+    final extended = prepared.copyWith(
+      points: [...prepared.points, p(4, 3)],
+      isClosed: true,
+    );
+
+    expect(
+      await plan.replaceCompletedRoom(
+        extended,
+        expectedOpenRoom: prepared,
+      ),
+      isTrue,
+    );
+    expect(plan.completedRooms.single.points, extended.points);
+  });
+
 }
