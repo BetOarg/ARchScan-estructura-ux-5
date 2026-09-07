@@ -243,7 +243,7 @@
   "zoomOut": "Zoom out",
   "zoomIn": "Zoom in",
   "resetView": "Reset view",
-  "touchTransformExplanation": "Tap a room, drag with one finger, and rotate with two. When released, a nearby opening will snap into place.",
+  "touchTransformExplanation": "Drag the room with one finger. Use two fingers to pan or zoom the plan; the adjustment button rotates it.",
   "connectedGroupTransformHint": "If the room is connected through an opening, the entire group will move or rotate as a single unit.",
   "selectedRoom": "Selected room",
   "movementDistance": "Distance of each movement",

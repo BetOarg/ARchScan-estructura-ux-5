@@ -243,7 +243,7 @@
   "zoomOut": "Alejar plano",
   "zoomIn": "Acercar plano",
   "resetView": "Restablecer vista",
-  "touchTransformExplanation": "Tocá un ambiente, arrastrá con un dedo y girá con dos. Al soltar, la abertura se ajustará si está cerca.",
+  "touchTransformExplanation": "Arrastrá el ambiente con un dedo. Usá dos dedos para mover o acercar el plano; el botón de ajuste permite girarlo.",
   "connectedGroupTransformHint": "Si el ambiente está conectado mediante una abertura, todo el grupo se moverá o rotará como una sola unidad.",
   "selectedRoom": "Ambiente seleccionado",
   "movementDistance": "Distancia de cada movimiento",

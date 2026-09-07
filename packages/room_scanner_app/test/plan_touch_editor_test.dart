@@ -206,6 +206,17 @@ void main() {
     ]) {
       expect(find.byKey(ValueKey(key)), findsOneWidget);
     }
+    final doorCenter =
+        tester.getCenter(find.byKey(const ValueKey('plan-add-door')));
+    final windowCenter =
+        tester.getCenter(find.byKey(const ValueKey('plan-add-window')));
+    final undoCenter =
+        tester.getCenter(find.byKey(const ValueKey('plan-undo')));
+    final redoCenter =
+        tester.getCenter(find.byKey(const ValueKey('plan-redo')));
+    expect(doorCenter.dy, windowCenter.dy);
+    expect(undoCenter.dy, redoCenter.dy);
+    expect(undoCenter.dy, greaterThan(doorCenter.dy));
     expect(tester.takeException(), isNull);
     await tester.tapAt(location(tester, 2, 3));
     await tester.pumpAndSettle();

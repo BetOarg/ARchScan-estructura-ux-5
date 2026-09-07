@@ -584,12 +584,16 @@ mixin _PlanWallEditing on State<FloorPlanViewerScreen> {
                         ),
                       ],
                     ),
+                  SizedBox(
+                    width: double.infinity,
+                    child: action(
+                      l.registeredRooms,
+                      Icons.meeting_room_outlined,
+                      _planSaving ? null : _showRoomListDialog,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
                   actionGrid([
-                      action(
-                        l.registeredRooms,
-                        Icons.meeting_room_outlined,
-                        _planSaving ? null : _showRoomListDialog,
-                      ),
                       action(
                         l.planAddDoor,
                         Icons.door_front_door,
