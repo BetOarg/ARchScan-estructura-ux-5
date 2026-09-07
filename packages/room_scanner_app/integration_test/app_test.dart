@@ -8,6 +8,6 @@ void main() {
   testWidgets('App inicia correctamente', (tester) async {
     app.main();
     await tester.pumpAndSettle();
-    expect(find.text('Room Scanner AR'), findsOneWidget);
+    expect(find.text('ARchScan'), findsOneWidget);
   });
 }

@@ -5,6 +5,7 @@ import '../l10n/generated/app_localizations.dart';
 import '../scanner/engine/scanner_capabilities.dart';
 import '../scanner/engine/scanner_mode_resolver.dart';
 import '../scanner/factories/scanner_factory.dart';
+import '../scanner/navigation/scanner_launch_request.dart';
 import '../scanner/services/device_capabilities_service.dart';
 
 class ArCheckService {
@@ -34,10 +35,12 @@ class ArCheckService {
           const ScannerModeResolver().resolve(capabilities);
       final scannerScreen = const ScannerFactory().createScreen(
         mode: scannerMode,
-        projectUuid: projectUuid,
-        projectName: projectName,
-        continuationReference: continuationReference,
-        resumeRoom: resumeRoom,
+        request: ScannerLaunchRequest(
+          projectUuid: projectUuid,
+          projectName: projectName,
+          continuationReference: continuationReference,
+          resumeRoom: resumeRoom,
+        ),
       );
 
       if (scannerScreen == null) {
