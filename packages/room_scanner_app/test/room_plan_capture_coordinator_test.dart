@@ -27,7 +27,7 @@ void main() {
         name: roomName,
         type: roomType,
         isClosed: true,
-        points: const [
+        points: [
           ARPoint(x: 0, y: 0, z: 0),
           ARPoint(x: 3, y: 0, z: 0),
           ARPoint(x: 3, y: 0, z: 2),
