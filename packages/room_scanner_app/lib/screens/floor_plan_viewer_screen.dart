@@ -2,7 +2,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart' show DragStartBehavior;
-import 'package:flutter/foundation.dart' show listEquals;
+import 'package:flutter/foundation.dart'
+    show TargetPlatform, defaultTargetPlatform, listEquals;
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:room_scanner_core/room_scanner_core.dart';
@@ -12,9 +13,12 @@ import '../providers/floor_plan_provider.dart';
 import '../providers/measurement_settings_provider.dart';
 import '../services/import_export_service.dart';
 import '../services/ar_check_service.dart';
+import '../services/room_plan_capture_coordinator.dart';
+import '../services/room_plan_service.dart';
 import '../services/scan_draft_service.dart';
 import '../widgets/plan_wall_length_dialog.dart';
 import '../widgets/opening_placement_dialog.dart' show showOpeningPlacementDialog;
+import '../widgets/room_name_dialog.dart';
 
 part 'floor_plan_wall_editor.dart';
 
@@ -46,6 +50,57 @@ class _FloorPlanViewerScreenState
   Offset _touchStartFocalPoint = Offset.zero;
   String? _touchTransformRoomId;
   int _touchSnapCount = 0;
+  bool _roomPlanSupported = false;
+  bool _roomPlanScanning = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRoomPlanSupport();
+  }
+
+  Future<void> _loadRoomPlanSupport() async {
+    if (defaultTargetPlatform != TargetPlatform.iOS) return;
+    final supported = await RoomPlanService.isSupported();
+    if (!mounted || supported == _roomPlanSupported) return;
+    setState(() => _roomPlanSupported = supported);
+  }
+
+  Future<void> _captureWithRoomPlan() async {
+    if (_roomPlanScanning) return;
+    final l10n = AppLocalizations.of(context)!;
+    final roomName = await showRoomNameDialog(
+      context: context,
+      initialName: l10n.roomTypeOther,
+    );
+    if (!mounted || roomName == null) return;
+
+    setState(() => _roomPlanScanning = true);
+    try {
+      final room = await const RoomPlanCaptureCoordinator().captureAndPersist(
+        floorPlanProvider: context.read<FloorPlanProvider>(),
+        roomName: roomName,
+      );
+      if (!mounted || room == null) return;
+      _showMessage(l10n.roomPlanSpaceSaved);
+    } on PlatformException catch (error) {
+      if (mounted) {
+        _showMessage(
+          l10n.roomPlanCaptureFailed(error.message ?? error.code),
+          error: true,
+        );
+      }
+    } on FormatException catch (error) {
+      if (mounted) {
+        _showMessage(
+          l10n.roomPlanCaptureFailed('${error.message}'),
+          error: true,
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _roomPlanScanning = false);
+    }
+  }
 
   void _toggleTouchTransformMode() {
     _clearPlanSelection();
@@ -2095,6 +2150,17 @@ class _FloorPlanViewerScreenState
         ),
         centerTitle: true,
         actions: widget.selectContinuationOpening ? const [] : [
+          if (_roomPlanSupported)
+            IconButton(
+              icon: _roomPlanScanning
+                  ? const SizedBox.square(
+                      dimension: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.view_in_ar_outlined),
+              tooltip: localizations.scanWithRoomPlan,
+              onPressed: _roomPlanScanning ? null : _captureWithRoomPlan,
+            ),
           IconButton(
             icon: Icon(
               _touchTransformMode ? Icons.check : Icons.open_with_rounded,

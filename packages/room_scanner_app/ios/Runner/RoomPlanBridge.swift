@@ -23,6 +23,7 @@ public final class RoomPlanBridge: NSObject,
     }
 
     private var roomCaptureView: RoomCaptureView?
+    private var controlsView: UIStackView?
     private var flutterResult: FlutterResult?
     private weak var presentingViewController: UIViewController?
     private var isFinishing = false
@@ -73,6 +74,7 @@ public final class RoomPlanBridge: NSObject,
             captureView.accessibilityIdentifier = "archscan-roomplan-view"
             self.roomCaptureView = captureView
             viewController.view.addSubview(captureView)
+            self.addControls(to: viewController.view)
             captureView.captureSession.run(
                 configuration: RoomCaptureSession.Configuration()
             )
@@ -82,9 +84,48 @@ public final class RoomPlanBridge: NSObject,
     public func stopScanning() {
         DispatchQueue.main.async { [weak self] in
             guard let self, self.flutterResult != nil else { return }
-            self.roomCaptureView?.captureSession.stop()
-            self.finish(with: nil)
+            self.cancelScanning()
         }
+    }
+
+    private func addControls(to parentView: UIView) {
+        let usesSpanish = Locale.preferredLanguages.first?.hasPrefix("es") == true
+        let cancelButton = UIButton(type: .system)
+        cancelButton.setTitle(usesSpanish ? "Cancelar" : "Cancel", for: .normal)
+        cancelButton.addTarget(self, action: #selector(cancelScanning), for: .touchUpInside)
+
+        let doneButton = UIButton(type: .system)
+        doneButton.setTitle(usesSpanish ? "Listo" : "Done", for: .normal)
+        doneButton.titleLabel?.font = .preferredFont(forTextStyle: .headline)
+        doneButton.addTarget(self, action: #selector(completeScanning), for: .touchUpInside)
+
+        let controls = UIStackView(arrangedSubviews: [cancelButton, doneButton])
+        controls.axis = .horizontal
+        controls.distribution = .equalSpacing
+        controls.backgroundColor = UIColor.systemBackground.withAlphaComponent(0.88)
+        controls.layer.cornerRadius = 14
+        controls.layoutMargins = UIEdgeInsets(top: 10, left: 16, bottom: 10, right: 16)
+        controls.isLayoutMarginsRelativeArrangement = true
+        controls.translatesAutoresizingMaskIntoConstraints = false
+        controls.accessibilityIdentifier = "archscan-roomplan-controls"
+        parentView.addSubview(controls)
+        NSLayoutConstraint.activate([
+            controls.topAnchor.constraint(equalTo: parentView.safeAreaLayoutGuide.topAnchor, constant: 8),
+            controls.leadingAnchor.constraint(equalTo: parentView.safeAreaLayoutGuide.leadingAnchor, constant: 12),
+            controls.trailingAnchor.constraint(equalTo: parentView.safeAreaLayoutGuide.trailingAnchor, constant: -12)
+        ])
+        controlsView = controls
+    }
+
+    @objc private func completeScanning() {
+        guard flutterResult != nil, !isFinishing else { return }
+        controlsView?.isUserInteractionEnabled = false
+        roomCaptureView?.captureSession.stop()
+    }
+
+    @objc private func cancelScanning() {
+        guard flutterResult != nil, !isFinishing else { return }
+        finish(with: nil)
     }
 
     public func captureView(
@@ -216,6 +257,8 @@ public final class RoomPlanBridge: NSObject,
             self.roomCaptureView?.captureSession.stop()
             self.roomCaptureView?.removeFromSuperview()
             self.roomCaptureView = nil
+            self.controlsView?.removeFromSuperview()
+            self.controlsView = nil
             self.presentingViewController = nil
 
             let result = self.flutterResult

@@ -30,6 +30,16 @@
   "roomTypeGarage": "Garage",
   "roomTypePlayroom": "Playroom",
   "roomTypeOther": "Other space",
+  "scanWithRoomPlan": "Scan with RoomPlan",
+  "roomPlanSpaceSaved": "RoomPlan space saved",
+  "roomPlanCaptureFailed": "RoomPlan could not complete the scan: {error}",
+  "@roomPlanCaptureFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "roomType": "Room type",
   "viewPlan": "View floor plan",
   "editRoomName": "Edit room name",

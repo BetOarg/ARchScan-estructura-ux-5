@@ -30,6 +30,16 @@
   "roomTypeGarage": "Cochera",
   "roomTypePlayroom": "Playroom",
   "roomTypeOther": "Otro espacio",
+  "scanWithRoomPlan": "Escanear con RoomPlan",
+  "roomPlanSpaceSaved": "Espacio de RoomPlan guardado",
+  "roomPlanCaptureFailed": "RoomPlan no pudo completar el escaneo: {error}",
+  "@roomPlanCaptureFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "roomType": "Tipo de ambiente",
   "viewPlan": "Ver plano",
   "editRoomName": "Editar nombre del ambiente",
