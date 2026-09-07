@@ -521,22 +521,25 @@ mixin _PlanWallEditing on State<FloorPlanViewerScreen> {
                             Icons.delete_outline,
                             _planSaving ? null : () => _previewEdit(false),
                           ),
+                        if ((room.isClosed && _planHit!.corner) ||
+                            (!room.isClosed &&
+                                (!_planHit!.corner ||
+                                    _planHit!.index == 0 ||
+                                    _planHit!.index ==
+                                        room.points.length - 1)))
+                          action(
+                            l.continueScan,
+                            Icons.add_road_rounded,
+                            _planSaving
+                                ? null
+                                : () => _continueOpenRoom(
+                                      room,
+                                      vertexIndex: _planHit!.corner
+                                          ? _planHit!.index
+                                          : null,
+                                    ),
+                          ),
                         if (!room.isClosed) ...[
-                          if (!_planHit!.corner ||
-                              _planHit!.index == 0 ||
-                              _planHit!.index == room.points.length - 1)
-                            action(
-                              l.continueScan,
-                              Icons.add_road_rounded,
-                              _planSaving
-                                  ? null
-                                  : () => _continueOpenRoom(
-                                        room,
-                                        vertexIndex: _planHit!.corner
-                                            ? _planHit!.index
-                                            : null,
-                                      ),
-                            ),
                           action(
                             l.closeRoom,
                             Icons.check_circle_outline,

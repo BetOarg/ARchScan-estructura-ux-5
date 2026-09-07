@@ -117,6 +117,31 @@ class _FloorPlanViewerScreenState
     });
   }
 
+  void _zoomPlan(double factor) {
+    final current = _planViewport.value;
+    final currentScale = current.getMaxScaleOnAxis();
+    final targetScale = (currentScale * factor).clamp(0.2, 6.0).toDouble();
+    if ((targetScale - currentScale).abs() <= 0.000001) return;
+    final ratio = targetScale / currentScale;
+    final viewportCenter = MediaQuery.sizeOf(context).center(Offset.zero);
+    final translationX = current.storage[12];
+    final translationY = current.storage[13];
+    final next = Matrix4.identity()
+      ..setEntry(0, 0, targetScale)
+      ..setEntry(1, 1, targetScale)
+      ..setEntry(2, 2, targetScale)
+      ..setTranslationRaw(
+        viewportCenter.dx - (viewportCenter.dx - translationX) * ratio,
+        viewportCenter.dy - (viewportCenter.dy - translationY) * ratio,
+        0,
+      );
+    _planViewport.value = next;
+  }
+
+  void _resetPlanZoom() {
+    _planViewport.value = Matrix4.identity();
+  }
+
   void _startTouchTransform(
     ScaleStartDetails details,
     List<RoomModel> rooms,
@@ -435,45 +460,67 @@ class _FloorPlanViewerScreenState
                   ),
                 ),
                 const SizedBox(height: 8),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    onPressed: () => Navigator.pop(
-                      bottomSheetContext,
-                      _FeatureMenuAction.editGeometry,
+                GridView.count(
+                  crossAxisCount: 2,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  mainAxisSpacing: 8,
+                  crossAxisSpacing: 8,
+                  mainAxisExtent: 52,
+                  children: [
+                    OutlinedButton.icon(
+                      onPressed: () => Navigator.pop(
+                        bottomSheetContext,
+                        _FeatureMenuAction.editGeometry,
+                      ),
+                      icon: const Icon(Icons.straighten),
+                      label: Text(
+                        localizations.editOpeningDimensions,
+                        maxLines: 2,
+                        textAlign: TextAlign.center,
+                      ),
                     ),
-                    icon: const Icon(Icons.straighten),
-                    label: Text(
-                      localizations.editOpeningDimensions,
+                    OutlinedButton.icon(
+                      icon: const Icon(Icons.touch_app),
+                      label: Text(
+                        localizations.moveOpeningOnWall,
+                        maxLines: 2,
+                        textAlign: TextAlign.center,
+                      ),
+                      onPressed: () => Navigator.pop(
+                        bottomSheetContext,
+                        _FeatureMenuAction.move,
+                      ),
                     ),
-                  ),
-                ),
-                OutlinedButton.icon(
-                  icon: const Icon(Icons.touch_app),
-                  label: Text(localizations.moveOpeningOnWall),
-                  onPressed: () => Navigator.pop(bottomSheetContext, _FeatureMenuAction.move),
-                ),
-                TextButton.icon(
-                  icon: const Icon(Icons.delete_outline),
-                  label: Text(localizations.deleteOpening),
-                  onPressed: () => Navigator.pop(bottomSheetContext, _FeatureMenuAction.delete),
+                    OutlinedButton.icon(
+                      icon: const Icon(Icons.delete_outline),
+                      label: Text(
+                        localizations.deleteOpening,
+                        maxLines: 2,
+                        textAlign: TextAlign.center,
+                      ),
+                      onPressed: () => Navigator.pop(
+                        bottomSheetContext,
+                        _FeatureMenuAction.delete,
+                      ),
+                    ),
+                    if (feature.type == FeatureType.door)
+                      OutlinedButton.icon(
+                        onPressed: () => Navigator.pop(
+                          bottomSheetContext,
+                          _FeatureMenuAction.toggleHinge,
+                        ),
+                        icon: const Icon(Icons.flip),
+                        label: Text(
+                          localizations.changeDoorHingeSide,
+                          maxLines: 2,
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                  ],
                 ),
                 const SizedBox(height: 8),
                 if (feature.type == FeatureType.door) ...[
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      onPressed: () => Navigator.pop(
-                        bottomSheetContext,
-                        _FeatureMenuAction.toggleHinge,
-                      ),
-                      icon: const Icon(Icons.flip),
-                      label: Text(
-                        localizations.changeDoorHingeSide,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton.icon(
@@ -2456,19 +2503,45 @@ class _FloorPlanViewerScreenState
                               horizontal: 16,
                               vertical: 12,
                             ),
-                            child: Row(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Icon(Icons.touch_app_rounded),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Text(
-                                    localizations.touchTransformExplanation,
-                                  ),
+                                Row(
+                                  children: [
+                                    const Icon(Icons.touch_app_rounded),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Text(
+                                        localizations.touchTransformExplanation,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                IconButton(
-                                  tooltip: localizations.transformRoomsTitle,
-                                  onPressed: _showRoomTransformEditor,
-                                  icon: const Icon(Icons.tune_rounded),
+                                const SizedBox(height: 6),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    IconButton(
+                                      tooltip: localizations.zoomOut,
+                                      onPressed: () => _zoomPlan(0.8),
+                                      icon: const Icon(Icons.zoom_out),
+                                    ),
+                                    IconButton(
+                                      tooltip: localizations.resetView,
+                                      onPressed: _resetPlanZoom,
+                                      icon: const Icon(Icons.center_focus_strong),
+                                    ),
+                                    IconButton(
+                                      tooltip: localizations.zoomIn,
+                                      onPressed: () => _zoomPlan(1.25),
+                                      icon: const Icon(Icons.zoom_in),
+                                    ),
+                                    IconButton(
+                                      tooltip: localizations.transformRoomsTitle,
+                                      onPressed: _showRoomTransformEditor,
+                                      icon: const Icon(Icons.tune_rounded),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
