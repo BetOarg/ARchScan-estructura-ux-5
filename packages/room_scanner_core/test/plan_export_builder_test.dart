@@ -132,6 +132,68 @@ void main() {
       expect(svg, contains('#C2185B'));
     });
 
+    test('omite el tipo genérico Otro espacio del plano exportado', () {
+      final room = RoomModel(
+        id: 'generic-room',
+        name: 'Local',
+        type: RoomType.other,
+        points: [
+          ARPoint(x: 0, y: 0, z: 0),
+          ARPoint(x: 3, y: 0, z: 0),
+          ARPoint(x: 3, y: 0, z: 2),
+          ARPoint(x: 0, y: 0, z: 2),
+        ],
+        isClosed: true,
+      );
+
+      final svg = PlanExportBuilder.buildFloorPlanSvg(
+        [room],
+        MeasurementSystem.metric,
+      );
+
+      expect(svg, contains('Local'));
+      expect(svg, isNot(contains('Otro espacio')));
+    });
+
+    test('la puerta exportada respeta interior y exterior', () {
+      RoomModel roomWith(DoorOpeningDirection direction) => RoomModel(
+            id: 'door-room',
+            name: 'Local',
+            type: RoomType.living,
+            points: [
+              ARPoint(x: 0, y: 0, z: 0),
+              ARPoint(x: 3, y: 0, z: 0),
+              ARPoint(x: 3, y: 0, z: 2),
+              ARPoint(x: 0, y: 0, z: 2),
+            ],
+            features: [
+              WallFeature(
+                id: 'direction-door',
+                type: FeatureType.door,
+                start: ARPoint(x: 0.5, y: 0, z: 0),
+                end: ARPoint(x: 1.5, y: 0, z: 0),
+                doorOpeningDirection: direction,
+              ),
+            ],
+            isClosed: true,
+          );
+
+      String drawingFor(DoorOpeningDirection direction) {
+        final svg = PlanExportBuilder.buildFloorPlanSvg(
+          [roomWith(direction)],
+          MeasurementSystem.metric,
+        );
+        return RegExp(
+          r'<g data-feature-id="direction-door">([\s\S]*?)</g>',
+        ).firstMatch(svg)!.group(1)!;
+      }
+
+      expect(
+        drawingFor(DoorOpeningDirection.interior),
+        isNot(drawingFor(DoorOpeningDirection.exterior)),
+      );
+    });
+
     test('no duplica una abertura compartida entre ambientes', () {
       final sharedDoor = WallFeature(
         id: 'shared-door',

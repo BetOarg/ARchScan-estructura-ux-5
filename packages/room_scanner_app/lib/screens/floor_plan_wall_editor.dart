@@ -448,6 +448,15 @@ mixin _PlanWallEditing on State<FloorPlanViewerScreen> {
           icon: Icon(icon, color: color),
           label: Text(text),
         );
+    Widget actionGrid(List<Widget> children) => GridView.count(
+          crossAxisCount: 2,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          mainAxisSpacing: 6,
+          crossAxisSpacing: 8,
+          mainAxisExtent: 44,
+          children: children,
+        );
     return SafeArea(
       top: false,
       child: Material(
@@ -455,7 +464,7 @@ mixin _PlanWallEditing on State<FloorPlanViewerScreen> {
         color: Theme.of(context).colorScheme.surface,
         child: ConstrainedBox(
           constraints: BoxConstraints(
-            maxHeight: MediaQuery.sizeOf(context).height * 0.43,
+            maxHeight: MediaQuery.sizeOf(context).height * 0.50,
             minHeight: _planHit != null || _pendingPlanEdit != null
                 ? MediaQuery.sizeOf(context).height * 0.43
                 : 0,
@@ -499,10 +508,7 @@ mixin _PlanWallEditing on State<FloorPlanViewerScreen> {
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                     Text(l.planDragSelection, textAlign: TextAlign.center),
-                    Wrap(
-                      spacing: 8,
-                      alignment: WrapAlignment.center,
-                      children: [
+                    actionGrid([
                         if (!_planHit!.corner)
                           action(
                             l.editMeasurements,
@@ -575,11 +581,7 @@ mixin _PlanWallEditing on State<FloorPlanViewerScreen> {
                         ),
                       ],
                     ),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 2,
-                    alignment: WrapAlignment.center,
-                    children: [
+                  actionGrid([
                       action(
                         l.registeredRooms,
                         Icons.meeting_room_outlined,

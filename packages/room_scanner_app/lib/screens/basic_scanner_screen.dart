@@ -1934,7 +1934,7 @@ class _BasicScannerScreenState
         initialImperialWidth.inches,
       ),
     );
-    var selectedMeasurementSystem =
+    final selectedMeasurementSystem =
         context
             .read<MeasurementSettingsProvider>()
             .system;
@@ -2021,68 +2021,20 @@ class _BasicScannerScreenState
                       ),
                     ),
                     const SizedBox(height: 10),
-                    Text(                      l10n.measurementSystem,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                      ),
-                    ),                    const SizedBox(height: 6),                    SegmentedButton<MeasurementSystem>(
-                      style: const ButtonStyle(
-                        visualDensity: VisualDensity.compact,
-                      ),
-                      segments: [
-                        ButtonSegment<MeasurementSystem>(
-                          value: MeasurementSystem.metric,
-                          label: Text(
-                            l10n.metricSystem,
-                            maxLines: 2,
-                            textAlign: TextAlign.center,
+                    Row(
+                      children: [
+                        const Icon(Icons.straighten, size: 18),
+                        const SizedBox(width: 8),
+                        Text(
+                          selectedMeasurementSystem == MeasurementSystem.metric
+                              ? l10n.metricSystem
+                              : l10n.imperialSystem,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 12,
                           ),
-                          icon: size.width < 400
-                              ? null
-                              : const Icon(Icons.straighten),
-                        ),
-                        ButtonSegment<MeasurementSystem>(
-                          value: MeasurementSystem.imperial,
-                          label: Text(
-                            l10n.imperialSystem,
-                            maxLines: 2,
-                            textAlign: TextAlign.center,
-                          ),
-                          icon: size.width < 400
-                              ? null
-                              : const Icon(Icons.square_foot),
                         ),
                       ],
-                      selected: <MeasurementSystem>{
-                        selectedMeasurementSystem,
-                      },
-                      onSelectionChanged: (selection) {
-                        final newSystem = selection.first;
-                        _convertLengthControllers(
-                          from: selectedMeasurementSystem,
-                          to: newSystem,
-                          metricController: distanceController,
-                          feetController: distanceFeetController,
-                          inchesController: distanceInchesController,
-                        );
-                        _convertLengthControllers(
-                          from: selectedMeasurementSystem,
-                          to: newSystem,
-                          metricController: featureWidthController,
-                          feetController: featureFeetController,
-                          inchesController: featureInchesController,
-                        );
-
-                        setDialogState(() {
-                          selectedMeasurementSystem = newSystem;
-                          context
-                              .read<MeasurementSettingsProvider>()
-                              .setSystem(newSystem);
-                          distanceError = null;
-                          featureWidthError = null;
-                        });
-                      },
                     ),
                     const SizedBox(height: 10),
                     Row(
@@ -2573,14 +2525,19 @@ class _BasicScannerScreenState
     TextEditingController controller,
     StateSetter setDialogState,
   ) {
-    return ActionChip(
-      visualDensity: VisualDensity.compact,
-      avatar: Icon(icon, size: 18),
-      label: Text('$label ${value.toStringAsFixed(0)}°'),
-      onPressed: () {
-        controller.text = _formatAngle(value);
-
-        setDialogState(() {});      },
+    return SizedBox(
+      height: 52,
+      child: OutlinedButton.icon(
+        icon: Icon(icon, size: 22),
+        label: Text(
+          '$label ${value.toStringAsFixed(0)}°',
+          textAlign: TextAlign.center,
+        ),
+        onPressed: () {
+          controller.text = _formatAngle(value);
+          setDialogState(() {});
+        },
+      ),
     );
   }
 

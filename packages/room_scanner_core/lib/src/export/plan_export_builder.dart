@@ -340,9 +340,12 @@ class PlanExportBuilder {
               .map((point) => point.y)
               .reduce((value, element) => value + element) /
           transformed.length;
+      final detailsLength = room.type == RoomType.other
+          ? 12
+          : labels.roomType(room.type).length + 12;
       final typeAndAreaWidth = math.max(
         62.0,
-        ((labels.roomType(room.type).length + 12) * 5.2),
+        detailsLength * 5.2,
       );
       labelLayout.reserve(
         center: _SvgPoint(centerX, centerY + 4),
@@ -408,8 +411,7 @@ class PlanExportBuilder {
           '<text x="${_svgNumber(centerX)}" '
           'y="${_svgNumber(centerY + 13)}" text-anchor="middle" '
           'font-family="Helvetica" font-size="10" fill="#374151">'
-          '${_escapeSvg(labels.roomType(room.type))} · '
-          '$areaText $areaUnit</text>',
+          '${_escapeSvg(_roomDetails(room, areaText, areaUnit, labels))}</text>',
         );
 
       final wallCount = room.isClosed
@@ -517,9 +519,12 @@ class PlanExportBuilder {
         : start;
     final dx = closedEnd.x - hinge.x;
     final dy = closedEnd.y - hinge.y;
-    final direction = feature.doorSwingSide == DoorSwingSide.left
+    var direction = feature.doorSwingSide == DoorSwingSide.left
         ? -1.0
         : 1.0;
+    if (feature.doorOpeningDirection == DoorOpeningDirection.exterior) {
+      direction = -direction;
+    }
     final openEnd = _SvgPoint(
       hinge.x + (direction * -dy),
       hinge.y + (direction * dx),
@@ -716,6 +721,18 @@ class PlanExportBuilder {
         .replaceAll("'", '&apos;');
   }
 
+  static String _roomDetails(
+    RoomModel room,
+    String areaText,
+    String areaUnit,
+    _PdfLabels labels,
+  ) {
+    final area = '$areaText $areaUnit';
+    return room.type == RoomType.other
+        ? area
+        : '${labels.roomType(room.type)} · $area';
+  }
+
   static pw.Widget _buildRoomReport(
     RoomModel room,
     MeasurementSystem measurementSystem,
@@ -744,7 +761,9 @@ class PlanExportBuilder {
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
           pw.Text(
-            '${room.name} · ${labels.roomType(room.type)}',
+            room.type == RoomType.other
+                ? room.name
+                : '${room.name} · ${labels.roomType(room.type)}',
             style: pw.TextStyle(
               fontSize: 14,
               fontWeight: pw.FontWeight.bold,

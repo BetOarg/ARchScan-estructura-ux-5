@@ -849,6 +849,21 @@ class FloorPlanProvider extends ChangeNotifier {
         connect(first.id, second.id);
       }
     }
+    // Real scans can leave a few centimetres between walls that are visually
+    // assembled. Keep those rooms in the same rigid group so Arrange never
+    // tears apart a plan the user has already positioned.
+    for (var firstIndex = 0; firstIndex < before.length; firstIndex++) {
+      for (var secondIndex = firstIndex + 1;
+          secondIndex < before.length;
+          secondIndex++) {
+        final first = before[firstIndex];
+        final second = before[secondIndex];
+        if (!_polygonsHaveInteriorOverlap(first.points, second.points) &&
+            _roomsAreVisuallyAttached(first, second)) {
+          connect(first.id, second.id);
+        }
+      }
+    }
     final seen = <String>{};
     final groups = <Set<String>>[];
     for (final room in before) {
@@ -906,6 +921,34 @@ class FloorPlanProvider extends ChangeNotifier {
     notifyListeners();
     await _persist();
     return true;
+  }
+
+  bool _roomsAreVisuallyAttached(
+    RoomModel first,
+    RoomModel second, {
+    double maximumGapMeters = 0.12,
+  }) {
+    if (first.points.length < 2 || second.points.length < 2) return false;
+    final maximumGapSquared = maximumGapMeters * maximumGapMeters;
+
+    bool pointNearRoom(ARPoint point, RoomModel room) {
+      for (var index = 0;
+          index < PlanEditGeometry.wallCount(room);
+          index++) {
+        if (_distanceSquaredToSegment(
+              point,
+              room.points[index],
+              room.points[(index + 1) % room.points.length],
+            ) <=
+            maximumGapSquared) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    return first.points.any((point) => pointNearRoom(point, second)) ||
+        second.points.any((point) => pointNearRoom(point, first));
   }
 
   /// Mueve manualmente un ambiente completo.
