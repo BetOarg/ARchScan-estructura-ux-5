@@ -38,7 +38,7 @@ class FloorPlanViewerScreen extends StatefulWidget {
 class _FloorPlanViewerScreenState
     extends State<FloorPlanViewerScreen> with _PlanWallEditing {
   final _scaffoldKey = GlobalKey<ScaffoldState>();
-  PersistentBottomSheetController<void>? _featureSheetController;
+  PersistentBottomSheetController? _featureSheetController;
   double _minX = 0.0;
   double _minZ = 0.0;
   double _scale = 1.0;
@@ -475,12 +475,12 @@ class _FloorPlanViewerScreenState
       if (!mounted) return;
     }
     _FeatureMenuAction? action;
-    late PersistentBottomSheetController<void> controller;
+    late PersistentBottomSheetController controller;
     void selectAction(_FeatureMenuAction selected) {
       action = selected;
       controller.close();
     }
-    controller = _scaffoldKey.currentState!.showBottomSheet<void>(
+    controller = _scaffoldKey.currentState!.showBottomSheet(
       (bottomSheetContext) {
         return SafeArea(
           child: SingleChildScrollView(child: Padding(
