@@ -191,7 +191,7 @@ jobs:
           for attempt in $(seq 1 "$max_attempts"); do
             echo "iOS configuration attempt $attempt of $max_attempts"
 
-            if flutter build ios --no-codesign --release \
+            if flutter build ios --simulator --release \
                 2>&1 | tee ios_configuration.log; then
               exit 0
             fi

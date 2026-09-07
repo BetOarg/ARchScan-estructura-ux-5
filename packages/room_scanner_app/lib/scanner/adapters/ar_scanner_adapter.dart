@@ -1,9 +1,5 @@
 import 'dart:io';
 
-import 'package:ar_flutter_plugin_2/ar_flutter_plugin.dart';
-import 'package:ar_flutter_plugin_2/datatypes/config_planedetection.dart';
-import 'package:ar_flutter_plugin_2/managers/ar_anchor_manager.dart';
-import 'package:ar_flutter_plugin_2/managers/ar_location_manager.dart';
 import 'package:ar_flutter_plugin_2/managers/ar_object_manager.dart';
 import 'package:ar_flutter_plugin_2/managers/ar_session_manager.dart';
 import 'package:flutter/services.dart';
@@ -186,4 +182,3 @@ class ARScannerAdapter implements ScannerAdapter {
     await session?.dispose();
   }
 }
-import 'dart:io';
