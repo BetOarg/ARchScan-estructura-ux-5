@@ -1,9 +1,12 @@
+import 'dart:io';
+
 import 'package:ar_flutter_plugin_2/ar_flutter_plugin.dart';
 import 'package:ar_flutter_plugin_2/datatypes/config_planedetection.dart';
 import 'package:ar_flutter_plugin_2/managers/ar_anchor_manager.dart';
 import 'package:ar_flutter_plugin_2/managers/ar_location_manager.dart';
 import 'package:ar_flutter_plugin_2/managers/ar_object_manager.dart';
 import 'package:ar_flutter_plugin_2/managers/ar_session_manager.dart';
+import 'package:flutter/services.dart';
 import 'package:vector_math/vector_math_64.dart' as vector;
 
 import '../utils/ar_stability_filter.dart';
@@ -24,6 +27,7 @@ import '../models/scanner_point.dart';
 class ARScannerAdapter implements ScannerAdapter {
   ARSessionManager? _sessionManager;
   ARObjectManager? _objectManager;
+  MethodChannel? _androidSessionChannel;
 
   final ARStabilityFilter _stabilityFilter = ARStabilityFilter();
 
@@ -45,11 +49,13 @@ class ARScannerAdapter implements ScannerAdapter {
   ///
   /// ARView sigue perteneciendo a la UI.
   void attachARSession({
+    required int viewId,
     required ARSessionManager sessionManager,
     required ARObjectManager objectManager,
   }) {
     _sessionManager = sessionManager;
     _objectManager = objectManager;
+    _androidSessionChannel = MethodChannel('arsession_$viewId');
 
     _initializeManagers();
   }
@@ -102,13 +108,13 @@ class ARScannerAdapter implements ScannerAdapter {
       return null;
     }
 
-    final pose = await session.getCameraPose();
+    final translation = Platform.isAndroid
+        ? await _getAndroidCameraTranslation(session)
+        : (await session.getCameraPose())?.getTranslation();
 
-    if (pose == null) {
+    if (translation == null) {
       return null;
     }
-
-    final translation = pose.getTranslation();
 
     _lastPosition = translation;
 
@@ -122,6 +128,31 @@ class ARScannerAdapter implements ScannerAdapter {
       accuracy: _estimateAccuracy(),
       source: PointSource.ar,
     );
+  }
+
+  Future<vector.Vector3?> _getAndroidCameraTranslation(
+    ARSessionManager session,
+  ) async {
+    try {
+      final raw = await _androidSessionChannel
+          ?.invokeMethod<dynamic>('getCameraPose', const <String, dynamic>{});
+      final decoded = decodeAndroidCameraTranslation(raw);
+      if (decoded != null) return decoded;
+    } on PlatformException {
+      // Fall through to the plugin API for forwards compatibility.
+    }
+    return (await session.getCameraPose())?.getTranslation();
+  }
+
+  static vector.Vector3? decodeAndroidCameraTranslation(dynamic raw) {
+    if (raw is! Map) return null;
+    final position = raw['position'];
+    if (position is! Map) return null;
+    final x = position['x'];
+    final y = position['y'];
+    final z = position['z'];
+    if (x is! num || y is! num || z is! num) return null;
+    return vector.Vector3(x.toDouble(), y.toDouble(), z.toDouble());
   }
 
   /// Precisión estimada.
@@ -150,7 +181,9 @@ class ARScannerAdapter implements ScannerAdapter {
 
     _sessionManager = null;
     _objectManager = null;
+    _androidSessionChannel = null;
 
     await session?.dispose();
   }
 }
+import 'dart:io';
