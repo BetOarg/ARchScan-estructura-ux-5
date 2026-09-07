@@ -59,6 +59,22 @@ jobs:
         run: flutter pub run build_runner build --delete-conflicting-outputs
         working-directory: packages/room_scanner_core
 
+      - name: Generate app localizations
+        working-directory: packages/room_scanner_app
+        run: |
+          flutter pub get
+          flutter gen-l10n
+
+      - name: Share generated sources
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-sources
+          path: |
+            packages/room_scanner_core/lib/src/models/isar_models.g.dart
+            packages/room_scanner_app/lib/l10n/generated
+          if-no-files-found: error
+          retention-days: 1
+
       - name: Analyze code
         run: flutter analyze --fatal-infos
         working-directory: packages/room_scanner_core
@@ -116,19 +132,19 @@ jobs:
           flutter --version
           flutter doctor -v
 
-      - name: Generate Isar / Build Runner code (room_scanner_core)
-        run: |
-          flutter pub get
-          flutter pub run build_runner build --delete-conflicting-outputs
+      - name: Get dependencies (room_scanner_core)
+        run: flutter pub get
         working-directory: packages/room_scanner_core
 
       - name: Get dependencies (room_scanner_app)
         run: flutter pub get
         working-directory: packages/room_scanner_app
 
-      - name: Generate Flutter localizations
-        run: flutter gen-l10n
-        working-directory: packages/room_scanner_app
+      - name: Download generated sources
+        uses: actions/download-artifact@v4
+        with:
+          name: generated-sources
+          path: packages
 
       - name: Analyze code
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
@@ -140,11 +156,7 @@ jobs:
 
       - name: Verify Android Release App Bundle
         working-directory: packages/room_scanner_app
-        run: |
-          flutter clean
-          flutter pub get
-          flutter gen-l10n
-          flutter build appbundle --release
+        run: flutter build appbundle --release
 
   check-ios:
     name: Verify iOS Build
@@ -162,29 +174,25 @@ jobs:
           channel: "stable"
           cache: true
 
-      - name: Generate Isar / Build Runner code (room_scanner_core)
-        run: |
-          flutter pub get
-          flutter pub run build_runner build --delete-conflicting-outputs
+      - name: Get dependencies (room_scanner_core)
+        run: flutter pub get
         working-directory: packages/room_scanner_core
 
       - name: Get dependencies (room_scanner_app)
         run: flutter pub get
         working-directory: packages/room_scanner_app
 
-      - name: Generate Flutter localizations
-        run: flutter gen-l10n
-        working-directory: packages/room_scanner_app
+      - name: Download generated sources
+        uses: actions/download-artifact@v4
+        with:
+          name: generated-sources
+          path: packages
 
       - name: Verify iOS Configuration & Pods
         working-directory: packages/room_scanner_app
         shell: bash
         run: |
           set -o pipefail
-
-          flutter clean
-          flutter pub get
-          flutter gen-l10n
 
           max_attempts=5
 
