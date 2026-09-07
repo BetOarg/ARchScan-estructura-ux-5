@@ -1,9 +1,9 @@
 import 'package:flutter/widgets.dart';
-import 'package:room_scanner_core/room_scanner_core.dart';
 
 import '../../screens/ar_scanner_screen.dart';
 import '../../screens/basic_scanner_screen.dart';
 import '../models/scanner_mode.dart';
+import '../navigation/scanner_launch_request.dart';
 
 /// Crea la pantalla correspondiente al modo elegido por [ScannerModeResolver].
 ///
@@ -14,23 +14,20 @@ class ScannerFactory {
 
   Widget? createScreen({
     required ScannerMode mode,
-    required String projectUuid,
-    required String projectName,
-    ScanContinuationReference? continuationReference,
-    RoomModel? resumeRoom,
+    required ScannerLaunchRequest request,
   }) {
     return switch (mode) {
       ScannerMode.ar => ARScannerScreen(
-          projectUuid: projectUuid,
-          projectName: projectName,
-          continuationReference: continuationReference,
-          resumeRoom: resumeRoom,
+          projectUuid: request.projectUuid,
+          projectName: request.projectName,
+          continuationReference: request.continuationReference,
+          resumeRoom: request.resumeRoom,
         ),
       ScannerMode.basic => BasicScannerScreen(
-          projectUuid: projectUuid,
-          projectName: projectName,
-          continuationReference: continuationReference,
-          resumeRoom: resumeRoom,
+          projectUuid: request.projectUuid,
+          projectName: request.projectName,
+          continuationReference: request.continuationReference,
+          resumeRoom: request.resumeRoom,
         ),
       ScannerMode.manual => null,
     };
