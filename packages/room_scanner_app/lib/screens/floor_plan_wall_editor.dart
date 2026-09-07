@@ -454,7 +454,7 @@ mixin _PlanWallEditing on State<FloorPlanViewerScreen> {
           physics: const NeverScrollableScrollPhysics(),
           mainAxisSpacing: 6,
           crossAxisSpacing: 8,
-          childAspectRatio: 3.15,
+          mainAxisExtent: 44,
           children: children,
         );
     return SafeArea(
@@ -464,7 +464,7 @@ mixin _PlanWallEditing on State<FloorPlanViewerScreen> {
         color: Theme.of(context).colorScheme.surface,
         child: ConstrainedBox(
           constraints: BoxConstraints(
-            maxHeight: MediaQuery.sizeOf(context).height * 0.43,
+            maxHeight: MediaQuery.sizeOf(context).height * 0.50,
             minHeight: _planHit != null || _pendingPlanEdit != null
                 ? MediaQuery.sizeOf(context).height * 0.43
                 : 0,
