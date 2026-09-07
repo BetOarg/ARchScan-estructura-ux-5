@@ -971,6 +971,32 @@ class _FloorPlanViewerScreenState
   ) {
     final localizations = AppLocalizations.of(context)!;
 
+    String planDirectionLabel(DoorOpeningDirection openingDirection) {
+      final start = _transformPoint(feature.start);
+      final end = _transformPoint(feature.end);
+      final opening = end - start;
+      if (opening.distance <= 0.000001) {
+        return openingDirection == DoorOpeningDirection.interior
+            ? localizations.doorOpensInterior
+            : localizations.doorOpensExterior;
+      }
+      final tangent = opening / opening.distance;
+      var direction = feature.doorSwingSide == DoorSwingSide.left
+          ? Offset(-tangent.dy, tangent.dx)
+          : Offset(tangent.dy, -tangent.dx);
+      if (openingDirection == DoorOpeningDirection.exterior) {
+        direction = -direction;
+      }
+      if (direction.dx.abs() > direction.dy.abs()) {
+        return direction.dx >= 0
+            ? '→ ${localizations.right}'
+            : '← ${localizations.left}';
+      }
+      return direction.dy >= 0
+          ? '↓ ${localizations.directionDown}'
+          : '↑ ${localizations.directionUp}';
+    }
+
     return showDialog<DoorOpeningDirection>(
       context: context,
       builder: (dialogContext) {
@@ -987,7 +1013,10 @@ class _FloorPlanViewerScreenState
               child: ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: const Icon(Icons.home_outlined),
-                title: Text(localizations.doorOpensInterior),
+                title: Text(
+                  planDirectionLabel(DoorOpeningDirection.interior),
+                ),
+                subtitle: Text(localizations.doorOpensInterior),
                 trailing: feature.doorOpeningDirection ==
                         DoorOpeningDirection.interior
                     ? const Icon(Icons.check_circle)
@@ -1002,7 +1031,10 @@ class _FloorPlanViewerScreenState
               child: ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: const Icon(Icons.exit_to_app),
-                title: Text(localizations.doorOpensExterior),
+                title: Text(
+                  planDirectionLabel(DoorOpeningDirection.exterior),
+                ),
+                subtitle: Text(localizations.doorOpensExterior),
                 trailing: feature.doorOpeningDirection ==
                         DoorOpeningDirection.exterior
                     ? const Icon(Icons.check_circle)
@@ -2161,35 +2193,20 @@ class _FloorPlanViewerScreenState
               tooltip: localizations.scanWithRoomPlan,
               onPressed: _roomPlanScanning ? null : _captureWithRoomPlan,
             ),
-          IconButton(
-            icon: Icon(
-              _touchTransformMode ? Icons.check : Icons.open_with_rounded,
-            ),
-            tooltip: _touchTransformMode
-                ? localizations.finishEditing
-                : localizations.touchTransformRooms,
-            onPressed: _toggleTouchTransformMode,
-          ),
-          IconButton(
-            icon: const Icon(
-              Icons.grid_view_rounded,
-            ),
-            tooltip: localizations.organizeRooms,
-            onPressed:
-                _organizeRooms,
-          ),
-          IconButton(
-            icon: const Icon(
-              Icons.straighten_outlined,
-            ),
-            tooltip: localizations.areaSummaryTitle,
-            onPressed: _showAreaSummary,
-          ),
           PopupMenuButton<
               _FloorPlanAction>(
             tooltip: localizations.moreOptions,
             onSelected: (action) {
               switch (action) {
+                case _FloorPlanAction.transformRooms:
+                  _toggleTouchTransformMode();
+                  break;
+                case _FloorPlanAction.organizeRooms:
+                  _organizeRooms();
+                  break;
+                case _FloorPlanAction.areaSummary:
+                  _showAreaSummary();
+                  break;
                 case _FloorPlanAction.importProject:
                   _importProject();
                   break;
@@ -2200,6 +2217,38 @@ class _FloorPlanViewerScreenState
             },
             itemBuilder: (context) {
               return [
+                PopupMenuItem(
+                  value: _FloorPlanAction.transformRooms,
+                  child: ListTile(
+                    dense: true,
+                    leading: Icon(
+                      _touchTransformMode
+                          ? Icons.check
+                          : Icons.open_with_rounded,
+                    ),
+                    title: Text(
+                      _touchTransformMode
+                          ? localizations.finishEditing
+                          : localizations.touchTransformRooms,
+                    ),
+                  ),
+                ),
+                PopupMenuItem(
+                  value: _FloorPlanAction.organizeRooms,
+                  child: ListTile(
+                    dense: true,
+                    leading: const Icon(Icons.grid_view_rounded),
+                    title: Text(localizations.organizeRooms),
+                  ),
+                ),
+                PopupMenuItem(
+                  value: _FloorPlanAction.areaSummary,
+                  child: ListTile(
+                    dense: true,
+                    leading: const Icon(Icons.straighten_outlined),
+                    title: Text(localizations.areaSummaryTitle),
+                  ),
+                ),
                 PopupMenuItem(
                   value: _FloorPlanAction.exportProject,
                   enabled: context.read<FloorPlanProvider>().completedRooms
@@ -3242,6 +3291,9 @@ class _FloorPlanViewerScreenState
 // ACCIONES
 // =============================================================================
 enum _FloorPlanAction {
+  transformRooms,
+  organizeRooms,
+  areaSummary,
   importProject,
   exportProject,
 }
@@ -4150,12 +4202,6 @@ class FloorPlanPainter
       ..strokeWidth = 1.2
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.square;
-    final backgroundPaint = Paint()
-      ..color = Colors.white.withValues(
-        alpha: 0.94,
-      )
-      ..style = PaintingStyle.fill;
-
     for (var index = 0;
         index < PlanEditGeometry.wallCount(room);
         index++) {
@@ -4267,19 +4313,6 @@ class FloorPlanPainter
       canvas.translate(labelCenter.dx, labelCenter.dy);
       canvas.rotate(angle);
 
-      final backgroundRect = Rect.fromCenter(
-        center: Offset.zero,
-        width: textPainter.width + 8,
-        height: textPainter.height + 4,
-      );
-
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(
-          backgroundRect,
-          const Radius.circular(4),
-        ),
-        backgroundPaint,
-      );
       textPainter.paint(
         canvas,
         Offset(
@@ -4474,20 +4507,6 @@ class FloorPlanPainter
           canvas.save();
           canvas.translate(labelCenter.dx, labelCenter.dy);
           canvas.rotate(angle);
-          final backgroundRect = Rect.fromCenter(
-            center: Offset.zero,
-            width: textPainter.width + 7,
-            height: textPainter.height + 4,
-          );
-          canvas.drawRRect(
-            RRect.fromRectAndRadius(
-              backgroundRect,
-              const Radius.circular(4),
-            ),
-            Paint()
-              ..color = Colors.white.withValues(alpha: 0.94)
-              ..style = PaintingStyle.fill,
-          );
           textPainter.paint(
             canvas,
             Offset(-textPainter.width / 2, -textPainter.height / 2),
@@ -4676,23 +4695,6 @@ class FloorPlanPainter
     canvas.translate(labelCenter.dx, labelCenter.dy);
     canvas.rotate(angle);
 
-    final backgroundRect = Rect.fromCenter(
-      center: Offset.zero,      width: textPainter.width + 6,
-      height: textPainter.height + 3,
-    );
-    final backgroundPaint = Paint()
-      ..color = Colors.white.withValues(
-        alpha: 0.94,
-      )
-      ..style = PaintingStyle.fill;
-
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        backgroundRect,
-        const Radius.circular(3),
-      ),
-      backgroundPaint,
-    );
     textPainter.paint(
       canvas,
       Offset(
