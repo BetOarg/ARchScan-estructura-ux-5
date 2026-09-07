@@ -11,6 +11,12 @@ import '../scanner/services/device_capabilities_service.dart';
 class ArCheckService {
   ArCheckService._();
 
+  static ScannerFactory? _scannerFactory;
+
+  static void configure({required ScannerFactory scannerFactory}) {
+    _scannerFactory = scannerFactory;
+  }
+
   /// Selecciona automáticamente el mejor scanner disponible.
   ///
   /// Prioridad:
@@ -33,7 +39,7 @@ class ArCheckService {
 
       final scannerMode =
           const ScannerModeResolver().resolve(capabilities);
-      final scannerScreen = const ScannerFactory().createScreen(
+      final scannerScreen = _scannerFactory?.createScreen(
         mode: scannerMode,
         request: ScannerLaunchRequest(
           projectUuid: projectUuid,

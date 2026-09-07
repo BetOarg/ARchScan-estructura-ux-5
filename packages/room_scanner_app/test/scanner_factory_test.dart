@@ -7,7 +7,20 @@ import 'package:room_scanner_ar/screens/ar_scanner_screen.dart';
 import 'package:room_scanner_ar/screens/basic_scanner_screen.dart';
 
 void main() {
-  const factory = ScannerFactory();
+  final factory = ScannerFactory(
+    arBuilder: (request) => ARScannerScreen(
+      projectUuid: request.projectUuid,
+      projectName: request.projectName,
+      continuationReference: request.continuationReference,
+      resumeRoom: request.resumeRoom,
+    ),
+    basicBuilder: (request) => BasicScannerScreen(
+      projectUuid: request.projectUuid,
+      projectName: request.projectName,
+      continuationReference: request.continuationReference,
+      resumeRoom: request.resumeRoom,
+    ),
+  );
   const projectUuid = 'project-uuid';
   const projectName = 'Proyecto de prueba';
   const request = ScannerLaunchRequest(
