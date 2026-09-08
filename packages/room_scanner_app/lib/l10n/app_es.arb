@@ -79,6 +79,7 @@
   "cameraUnavailable": "El dispositivo no tiene una cámara disponible.",
   "cameraTimeoutMessage": "La cámara tardó demasiado en responder. Podés intentar iniciarla nuevamente.",
   "closeRoom": "Cerrar ambiente",
+  "chooseClosingCorner": "Elegí la esquina donde querés cerrar",
   "diagonalClosureDetectedTitle": "Cierre diagonal detectado",
   "diagonalClosureDetectedMessage": "El cierre directo formaría una diagonal. La aplicación puede agregar la esquina ortogonal faltante y cerrar contra la primera esquina real del ambiente.",
   "addCornerAndClose": "Agregar esquina y cerrar",

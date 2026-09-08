@@ -391,11 +391,13 @@ class FloorPlanProvider extends ChangeNotifier {
   /// primer vértice, el recorrido se invierte sin modificar coordenadas,
   /// medidas, aberturas ni el ID histórico del ambiente. Los vértices
   /// intermedios de un contorno abierto se rechazan porque producirían una
-  /// bifurcación. En un ambiente cerrado se abre la pared siguiente a la
-  /// esquina elegida y se rota la lista para conservar toda la geometría.
+  /// bifurcación. En un ambiente cerrado, [closingVertexIndex] define dónde
+  /// terminará el nuevo recorrido y se conserva el tramo existente entre esa
+  /// esquina y la esquina elegida para continuar.
   RoomModel? prepareOpenRoomContinuation({
     required String roomId,
     required int vertexIndex,
+    int? closingVertexIndex,
   }) {
     final room = _completedRooms
         .where((candidate) => candidate.id == roomId)
@@ -403,11 +405,22 @@ class FloorPlanProvider extends ChangeNotifier {
     if (room == null || room.points.length < 2) return null;
     if (vertexIndex < 0 || vertexIndex >= room.points.length) return null;
     if (room.isClosed) {
+      final closingIndex = closingVertexIndex;
+      if (closingIndex == null ||
+          closingIndex < 0 ||
+          closingIndex >= room.points.length ||
+          closingIndex == vertexIndex) {
+        return null;
+      }
+      final continuationPoints = <ARPoint>[];
+      var index = closingIndex;
+      while (true) {
+        continuationPoints.add(room.points[index]);
+        if (index == vertexIndex) break;
+        index = (index + 1) % room.points.length;
+      }
       return room.copyWith(
-        points: [
-          for (var offset = 1; offset <= room.points.length; offset++)
-            room.points[(vertexIndex + offset) % room.points.length],
-        ],
+        points: continuationPoints,
         isClosed: false,
       );
     }
@@ -450,7 +463,6 @@ class FloorPlanProvider extends ChangeNotifier {
     if (current.id != prepared.id ||
         current.name != prepared.name ||
         current.type != prepared.type ||
-        current.points.length != prepared.points.length ||
         jsonEncode(current.features.map((f) => f.toJson()).toList()) !=
             jsonEncode(prepared.features.map((f) => f.toJson()).toList())) {
       return false;

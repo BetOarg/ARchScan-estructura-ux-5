@@ -23,6 +23,7 @@ mixin _PlanWallEditing on State<FloorPlanViewerScreen> {
 
     final l10n = AppLocalizations.of(context)!;
     var selectedVertexIndex = vertexIndex;
+    int? closingVertexIndex;
 
     // When the action starts from a selected wall, do not silently return to
     // the historical first point. Let the user choose either valid endpoint.
@@ -63,9 +64,39 @@ mixin _PlanWallEditing on State<FloorPlanViewerScreen> {
       if (!mounted || selectedVertexIndex == null) return;
     }
 
+    if (room.isClosed) {
+      closingVertexIndex = await showModalBottomSheet<int>(
+        context: context,
+        builder: (sheetContext) => SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                child: Text(
+                  l10n.chooseClosingCorner,
+                  style: Theme.of(sheetContext).textTheme.titleMedium,
+                ),
+              ),
+              for (var index = 0; index < room.points.length; index++)
+                if (index != selectedVertexIndex)
+                  ListTile(
+                    leading: const Icon(Icons.adjust_rounded),
+                    title: Text('${l10n.planCorner} ${index + 1}'),
+                    onTap: () => Navigator.pop(sheetContext, index),
+                  ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        ),
+      );
+      if (!mounted || closingVertexIndex == null) return;
+    }
+
     final preparedRoom = _plan.prepareOpenRoomContinuation(
       roomId: room.id,
       vertexIndex: selectedVertexIndex,
+      closingVertexIndex: closingVertexIndex,
     );
     if (preparedRoom == null) return;
 

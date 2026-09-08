@@ -192,7 +192,7 @@ void main() {
     );
   });
 
-  test('closed room can continue from any selected corner', () {
+  test('closed room can continue and close at any other corner', () {
     final closed = room(
       'closed',
       [p(0, 0), p(3, 0), p(3, 2), p(0, 2)],
@@ -200,15 +200,27 @@ void main() {
     final plan = provider([closed]);
     addTearDown(plan.dispose);
 
-    for (var vertex = 0; vertex < closed.points.length; vertex++) {
-      final prepared = plan.prepareOpenRoomContinuation(
-        roomId: 'closed',
-        vertexIndex: vertex,
+    for (var start = 0; start < closed.points.length; start++) {
+      expect(
+        plan.prepareOpenRoomContinuation(
+          roomId: 'closed',
+          vertexIndex: start,
+        ),
+        isNull,
       );
-      expect(prepared, isNotNull);
-      expect(prepared!.isClosed, isFalse);
-      expect(prepared.points, hasLength(closed.points.length));
-      expect(prepared.points.last, closed.points[vertex]);
+      for (var target = 0; target < closed.points.length; target++) {
+        if (target == start) continue;
+        final prepared = plan.prepareOpenRoomContinuation(
+          roomId: 'closed',
+          vertexIndex: start,
+          closingVertexIndex: target,
+        );
+        expect(prepared, isNotNull);
+        expect(prepared!.isClosed, isFalse);
+        expect(prepared.points.first, closed.points[target]);
+        expect(prepared.points.last, closed.points[start]);
+        expect(prepared.points.toSet(), hasLength(prepared.points.length));
+      }
     }
   });
 
@@ -222,7 +234,9 @@ void main() {
     final prepared = plan.prepareOpenRoomContinuation(
       roomId: 'closed-save',
       vertexIndex: 2,
+      closingVertexIndex: 0,
     )!;
+    expect(prepared.points, hasLength(3));
     final extended = prepared.copyWith(
       points: [...prepared.points, p(4, 3)],
       isClosed: true,

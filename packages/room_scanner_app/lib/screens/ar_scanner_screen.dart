@@ -646,9 +646,6 @@ class _ARScannerScreenState extends State<ARScannerScreen>
                         : context
                             .watch<FloorPlanProvider>()
                             .completedRooms
-                            .where(
-                              (room) => room.id != widget.resumeRoom?.id,
-                            )
                             .toList(growable: false),
                     continuationReference: _activeContinuationReference,
                   ),

@@ -861,11 +861,7 @@ class _BasicScannerScreenState
               _activeContinuationReference == null &&
                       widget.resumeRoom == null
                   ? const <RoomModel>[]
-                  : completedRooms
-                      .where(
-                        (room) => room.id != widget.resumeRoom?.id,
-                      )
-                      .toList(growable: false),
+                  : completedRooms,
           continuationReference:
               _activeContinuationReference,
         ),

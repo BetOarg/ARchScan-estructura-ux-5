@@ -180,7 +180,7 @@ class ScannerGuidePainter
     Canvas canvas,
     Offset Function(ARPoint point) project,
   ) {
-    if (continuationReference == null) {
+    if (previousRooms.isEmpty) {
       return;
     }
 
@@ -226,10 +226,9 @@ class ScannerGuidePainter
       canvas.drawPath(path, wallPaint);
 
       for (final feature in room.features) {
-        final selected =
+        final selected = continuationReference != null &&
             room.id == continuationReference!.sourceRoomId &&
-                feature.id ==
-                    continuationReference!.featureId;
+            feature.id == continuationReference!.featureId;
 
         final featurePaint = Paint()
           ..color = selected
