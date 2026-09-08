@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -2418,7 +2419,10 @@ class _FloorPlanViewerScreenState
                       onTapUp: (
                         details,
                       ) async {
-                        if (_addOpeningType != null || _wallEditMode || _pendingPlanEdit != null) {
+                        if (_choosingContinuationClosing ||
+                            _addOpeningType != null ||
+                            _wallEditMode ||
+                            _pendingPlanEdit != null) {
                           await _selectPlanElement(details.localPosition, provider.completedRooms);
                           return;
                         }
