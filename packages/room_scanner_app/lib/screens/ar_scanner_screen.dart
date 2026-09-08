@@ -1661,7 +1661,11 @@ class _ARScannerScreenState extends State<ARScannerScreen>
     }
 
     final resumeRoom = widget.resumeRoom;
-    final saved = resumeRoom != null
+    final resumesExistingRoom = resumeRoom != null &&
+        floorPlanProvider.completedRooms.any(
+          (room) => room.id == resumeRoom.id,
+        );
+    final saved = resumesExistingRoom
         ? await floorPlanProvider.replaceCompletedRoom(
             closedRoom,
             expectedOpenRoom: resumeRoom,
@@ -1673,8 +1677,11 @@ class _ARScannerScreenState extends State<ARScannerScreen>
             reference: continuation,
           );
 
-    if (resumeRoom == null && continuation == null) {
-      await floorPlanProvider.addCompletedRoom(closedRoom);
+    if (!resumesExistingRoom && continuation == null) {
+      await floorPlanProvider.addCompletedRoom(
+        closedRoom,
+        preservePlacement: resumeRoom != null,
+      );
     }
 
     if (!saved) {
