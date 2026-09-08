@@ -65,32 +65,13 @@ mixin _PlanWallEditing on State<FloorPlanViewerScreen> {
     }
 
     if (room.isClosed) {
-      closingVertexIndex = await showModalBottomSheet<int>(
-        context: context,
-        builder: (sheetContext) => SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                child: Text(
-                  l10n.chooseClosingCorner,
-                  style: Theme.of(sheetContext).textTheme.titleMedium,
-                ),
-              ),
-              for (var index = 0; index < room.points.length; index++)
-                if (index != selectedVertexIndex)
-                  ListTile(
-                    leading: const Icon(Icons.adjust_rounded),
-                    title: Text('${l10n.planCorner} ${index + 1}'),
-                    onTap: () => Navigator.pop(sheetContext, index),
-                  ),
-              const SizedBox(height: 8),
-            ],
-          ),
-        ),
+      closingVertexIndex = await _chooseContinuationClosingCorner(
+        room,
+        selectedVertexIndex,
       );
       if (!mounted || closingVertexIndex == null) return;
+      await WidgetsBinding.instance.endOfFrame;
+      if (!mounted) return;
     }
 
     final preparedRoom = _plan.prepareOpenRoomContinuation(
@@ -117,7 +98,9 @@ mixin _PlanWallEditing on State<FloorPlanViewerScreen> {
         ],
       ),
     );
-    if (confirmed != true || !mounted) return;
+    if (!mounted) return;
+    setState(_clearContinuationCornerSelection);
+    if (confirmed != true) return;
 
     final projectUuid = _plan.projectUuid;
     if (projectUuid == null) return;
@@ -146,16 +129,57 @@ mixin _PlanWallEditing on State<FloorPlanViewerScreen> {
   PlanEditProposal? _pendingPlanEdit;
   String? _previewTitle;
   bool _deletingPreview = false;
+  Completer<int?>? _closingCornerCompleter;
+  _PlanHit? _continuationStartHit;
+  _PlanHit? _continuationClosingHit;
+  bool get _choosingContinuationClosing =>
+      _closingCornerCompleter != null;
   FloorPlanProvider get _plan => context.read<FloorPlanProvider>();
   bool get _wallGestureActive =>
-      _planHit != null && _pendingPlanEdit == null && !_planSaving;
+      !_choosingContinuationClosing &&
+      _planHit != null &&
+      _pendingPlanEdit == null &&
+      !_planSaving;
   bool get _freezePlanTransform =>
       _pendingPlanEdit != null || _dragRoom != null;
 
   @override
   void dispose() {
+    final completer = _closingCornerCompleter;
+    if (completer != null && !completer.isCompleted) {
+      completer.complete(null);
+    }
     _planViewport.dispose();
     super.dispose();
+  }
+
+  Future<int?> _chooseContinuationClosingCorner(
+    RoomModel room,
+    int startVertexIndex,
+  ) async {
+    final completer = Completer<int?>();
+    setState(() {
+      _closingCornerCompleter = completer;
+      _continuationStartHit =
+          _PlanHit(room.id, startVertexIndex, true);
+      _continuationClosingHit = null;
+      _wallEditMode = false;
+    });
+    return completer.future;
+  }
+
+  void _clearContinuationCornerSelection() {
+    _closingCornerCompleter = null;
+    _continuationStartHit = null;
+    _continuationClosingHit = null;
+  }
+
+  void _cancelContinuationCornerSelection() {
+    final completer = _closingCornerCompleter;
+    setState(_clearContinuationCornerSelection);
+    if (completer != null && !completer.isCompleted) {
+      completer.complete(null);
+    }
   }
 
   void _clearPlanSelection() {
@@ -224,6 +248,29 @@ mixin _PlanWallEditing on State<FloorPlanViewerScreen> {
     Offset position,
     List<RoomModel> rooms,
   ) async {
+    final closingCompleter = _closingCornerCompleter;
+    final startHit = _continuationStartHit;
+    if (closingCompleter != null && startHit != null) {
+      final cornerHits = _planHits(
+        position,
+        rooms,
+        onlyRoom: startHit.roomId,
+      ).where((hit) => hit.corner).toList();
+      if (cornerHits.isEmpty) {
+        _showMessage(AppLocalizations.of(context)!.chooseClosingCorner);
+        return true;
+      }
+      final hit = cornerHits.first;
+      if (hit.index == startHit.index) {
+        _showMessage(AppLocalizations.of(context)!.chooseDifferentCorner);
+        return true;
+      }
+      setState(() => _continuationClosingHit = hit);
+      if (!closingCompleter.isCompleted) {
+        closingCompleter.complete(hit.index);
+      }
+      return true;
+    }
     if (_pendingPlanEdit != null || _planSaving) return true;
     final type = _addOpeningType;
     final hits = _planHits(position, rooms, corners: type == null);
@@ -506,7 +553,20 @@ mixin _PlanWallEditing on State<FloorPlanViewerScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (_pendingPlanEdit != null) ...[
+                  if (_choosingContinuationClosing) ...[
+                    Row(
+                      children: [
+                        const Icon(Icons.touch_app_rounded),
+                        const SizedBox(width: 8),
+                        Expanded(child: Text(l.chooseClosingCorner)),
+                        IconButton(
+                          tooltip: l.cancel,
+                          onPressed: _cancelContinuationCornerSelection,
+                          icon: const Icon(Icons.close),
+                        ),
+                      ],
+                    ),
+                  ] else if (_pendingPlanEdit != null) ...[
                     Text(_previewTitle!, textAlign: TextAlign.center),
                     Wrap(
                       spacing: 8,
@@ -569,6 +629,7 @@ mixin _PlanWallEditing on State<FloorPlanViewerScreen> {
                                           ? _planHit!.index
                                           : null,
                                     ),
+                            key: const ValueKey('plan-continue-scan'),
                           ),
                         if (!room.isClosed) ...[
                           action(
@@ -615,16 +676,17 @@ mixin _PlanWallEditing on State<FloorPlanViewerScreen> {
                         ),
                       ],
                     ),
-                  SizedBox(
-                    width: double.infinity,
-                    child: action(
-                      l.registeredRooms,
-                      Icons.meeting_room_outlined,
-                      _planSaving ? null : _showRoomListDialog,
+                  if (!_choosingContinuationClosing) ...[
+                    SizedBox(
+                      width: double.infinity,
+                      child: action(
+                        l.registeredRooms,
+                        Icons.meeting_room_outlined,
+                        _planSaving ? null : _showRoomListDialog,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 6),
-                  actionGrid([
+                    const SizedBox(height: 6),
+                    actionGrid([
                       action(
                         l.planAddDoor,
                         Icons.door_front_door,
@@ -673,8 +735,9 @@ mixin _PlanWallEditing on State<FloorPlanViewerScreen> {
                             : null,
                         key: const ValueKey('plan-redo'),
                       ),
-                    ],
-                  ),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -692,6 +755,8 @@ mixin _PlanWallEditing on State<FloorPlanViewerScreen> {
         _planHit,
         _transformPoint,
         _pendingPlanEdit?.returnPath ?? const [],
+        continuationStart: _continuationStartHit,
+        continuationClosing: _continuationClosingHit,
         deleting: _pendingPlanEdit != null && _deletingPreview,
       );
 
@@ -747,8 +812,17 @@ class _PlanSelectionPainter extends CustomPainter {
   final Offset Function(ARPoint) project;
   final List<ARPoint> returnPath;
   final bool deleting;
-  _PlanSelectionPainter(this.rooms, this.hit, this.project, this.returnPath,
-      {this.deleting = false});
+  final _PlanHit? continuationStart;
+  final _PlanHit? continuationClosing;
+  _PlanSelectionPainter(
+    this.rooms,
+    this.hit,
+    this.project,
+    this.returnPath, {
+    this.deleting = false,
+    this.continuationStart,
+    this.continuationClosing,
+  });
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
@@ -777,6 +851,19 @@ class _PlanSelectionPainter extends CustomPainter {
       );
       canvas.drawCircle(project(returnPath[i]), 5, paint);
     }
+    void drawContinuationCorner(_PlanHit? selection, Color color) {
+      if (selection == null) return;
+      final selectedRoom =
+          rooms.where((room) => room.id == selection.roomId).firstOrNull;
+      if (selectedRoom == null || selection.index >= selectedRoom.points.length) {
+        return;
+      }
+      paint.color = color;
+      canvas.drawCircle(project(selectedRoom.points[selection.index]), 13, paint);
+    }
+
+    drawContinuationCorner(continuationStart, Colors.orangeAccent);
+    drawContinuationCorner(continuationClosing, Colors.greenAccent);
   }
 
   @override
