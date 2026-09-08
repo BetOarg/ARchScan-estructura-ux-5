@@ -154,6 +154,9 @@ void main() {
     await tester.tapAt(location(tester, 4, 3));
     await tester.pumpAndSettle();
     expect(find.byType(AlertDialog), findsOneWidget);
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(find.byType(AlertDialog), findsNothing);
     expect(tester.takeException(), isNull);
   });
 
