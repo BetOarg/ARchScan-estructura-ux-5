@@ -79,6 +79,7 @@
   "cameraUnavailable": "The device does not have an available camera.",
   "cameraTimeoutMessage": "The camera took too long to respond. You can try starting it again.",
   "closeRoom": "Close room",
+  "chooseClosingCorner": "Choose the corner where you want to close",
   "diagonalClosureDetectedTitle": "Diagonal closure detected",
   "diagonalClosureDetectedMessage": "Closing directly would create a diagonal. The application can add the missing orthogonal corner and close against the first real corner of the room.",
   "addCornerAndClose": "Add corner and close",
