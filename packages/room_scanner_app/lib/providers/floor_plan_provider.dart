@@ -351,6 +351,7 @@ class FloorPlanProvider extends ChangeNotifier {
   /// - forma del ambiente.
   Future<void> addCompletedRoom(
     RoomModel room,
+    {bool preservePlacement = false}
   ) async {
     var roomToAdd = room;
 
@@ -368,7 +369,8 @@ class FloorPlanProvider extends ChangeNotifier {
       );
     }
 
-    if (_completedRooms.isNotEmpty &&
+    if (!preservePlacement &&
+        _completedRooms.isNotEmpty &&
         roomToAdd.points.isNotEmpty) {
       roomToAdd =
           _placeRoomAfterExisting(
@@ -391,9 +393,9 @@ class FloorPlanProvider extends ChangeNotifier {
   /// primer vértice, el recorrido se invierte sin modificar coordenadas,
   /// medidas, aberturas ni el ID histórico del ambiente. Los vértices
   /// intermedios de un contorno abierto se rechazan porque producirían una
-  /// bifurcación. En un ambiente cerrado, [closingVertexIndex] define dónde
-  /// terminará el nuevo recorrido y se conserva el tramo existente entre esa
-  /// esquina y la esquina elegida para continuar.
+  /// bifurcación. Desde un ambiente cerrado se prepara un ambiente nuevo: el
+  /// original permanece intacto y su tramo entre ambas esquinas se convierte
+  /// en el límite compartido con el nuevo recorrido.
   RoomModel? prepareOpenRoomContinuation({
     required String roomId,
     required int vertexIndex,
@@ -419,8 +421,12 @@ class FloorPlanProvider extends ChangeNotifier {
         if (index == vertexIndex) break;
         index = (index + 1) % room.points.length;
       }
-      return room.copyWith(
+      return RoomModel(
+        id: _nextUniqueId(),
+        name: room.name,
+        type: room.type,
         points: continuationPoints,
+        features: const [],
         isClosed: false,
       );
     }

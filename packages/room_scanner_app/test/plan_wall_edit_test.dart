@@ -217,14 +217,17 @@ void main() {
         );
         expect(prepared, isNotNull);
         expect(prepared!.isClosed, isFalse);
+        expect(prepared.id, isNot(closed.id));
         expect(prepared.points.first, closed.points[target]);
         expect(prepared.points.last, closed.points[start]);
         expect(prepared.points.toSet(), hasLength(prepared.points.length));
+        expect(plan.completedRooms.single, same(closed));
       }
     }
   });
 
-  test('saved continuation replaces its cyclic closed source safely', () async {
+  test('saved continuation preserves its closed source and shared wall',
+      () async {
     final closed = room(
       'closed-save',
       [p(0, 0), p(3, 0), p(3, 2), p(0, 2)],
@@ -242,14 +245,15 @@ void main() {
       isClosed: true,
     );
 
+    await plan.addCompletedRoom(extended, preservePlacement: true);
+    expect(plan.completedRooms, hasLength(2));
+    expect(plan.completedRooms.first, same(closed));
+    expect(plan.completedRooms.first.points, closed.points);
+    expect(plan.completedRooms.last.points.first, closed.points.first);
     expect(
-      await plan.replaceCompletedRoom(
-        extended,
-        expectedOpenRoom: prepared,
-      ),
-      isTrue,
+      plan.completedRooms.last.points[prepared.points.length - 1],
+      closed.points[2],
     );
-    expect(plan.completedRooms.single.points, extended.points);
   });
 
 }
