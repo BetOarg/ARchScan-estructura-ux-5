@@ -145,7 +145,10 @@ mixin _PlanWallEditing on State<FloorPlanViewerScreen> {
 
   @override
   void dispose() {
-    _closingCornerCompleter?.complete(null);
+    final completer = _closingCornerCompleter;
+    if (completer != null && !completer.isCompleted) {
+      completer.complete(null);
+    }
     _planViewport.dispose();
     super.dispose();
   }
