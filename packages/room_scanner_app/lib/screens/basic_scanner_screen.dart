@@ -2782,7 +2782,11 @@ class _BasicScannerScreenState
     }
 
     final resumeRoom = widget.resumeRoom;
-    final saved = resumeRoom != null
+    final resumesExistingRoom = resumeRoom != null &&
+        floorPlanProvider.completedRooms.any(
+          (existing) => existing.id == resumeRoom.id,
+        );
+    final saved = resumesExistingRoom
         ? await floorPlanProvider.replaceCompletedRoom(
             room,
             expectedOpenRoom: resumeRoom,
@@ -2794,8 +2798,11 @@ class _BasicScannerScreenState
             reference: continuation,
           );
 
-    if (resumeRoom == null && continuation == null) {
-      await floorPlanProvider.addCompletedRoom(room);
+    if (!resumesExistingRoom && continuation == null) {
+      await floorPlanProvider.addCompletedRoom(
+        room,
+        preservePlacement: resumeRoom != null,
+      );
     }
 
     if (!saved) {
