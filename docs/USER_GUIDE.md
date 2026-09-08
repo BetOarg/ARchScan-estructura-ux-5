@@ -1,7 +1,7 @@
 # ARchScan User Guide / Guía de uso
 
 **Guide version:** ARchScan 2.7.0  
-**Last updated:** August 31, 2026  
+**Last updated:** September 8, 2026
 **Developer:** Bet0  
 **Data model:** local projects, without user accounts or cloud synchronization
 
@@ -101,7 +101,7 @@ Doors and windows can connect two spaces.
 
 The new room uses the selected opening as its reference. Do not move or edit that opening while the scanner is open.
 
-## 5. Continue an open contour from either endpoint
+## 5. Continue from corners
 
 An unfinished room can be continued from its first or last vertex.
 
@@ -113,6 +113,21 @@ An unfinished room can be continued from its first or last vertex.
 6. Close the room when the contour is complete.
 
 Intermediate vertices cannot be used to branch an open contour. This prevents ambiguous or self-intersecting geometry.
+
+### Start a new room between two corners of a closed room
+
+1. Tap the starting corner directly on the overall plan.
+2. Select **Continue scanning from here**.
+3. Tap the corner where the new room must close. The starting and closing
+   corners are highlighted with different colors.
+4. Use two fingers or the zoom controls if you need to move or resize the plan
+   before choosing the closing corner.
+5. Confirm the selection and scan the new outer contour.
+6. Close the new room and verify the shared boundary on the overall plan.
+
+The operation creates a new room. It does not replace the source room or delete
+its existing wall, measurements, doors, or windows. A coincident corner shared
+by several rooms is resolved against the room selected for continuation.
 
 ## 6. Calibrate vertices when continuing with AR
 
@@ -177,6 +192,9 @@ Deleting a connected opening removes the connection without deleting either room
 4. Confirm the placement.
 
 Rooms connected by openings or shared walls move as a group so their existing relationships are preserved.
+Use two fingers to pan or zoom the plan while arranging rooms. The dedicated
+zoom-out, zoom-in, and reset-view controls remain available when greater
+precision is required.
 
 ### Align walls
 
@@ -361,6 +379,12 @@ The current workflow adds doors and windows from the overall floor plan after th
 
 Yes. Select the first or last vertex of the open contour. Intermediate vertices are not used for branching.
 
+### Can I create a new room between two corners of an existing room?
+
+Yes. Tap the starting corner, select **Continue scanning from here**, and then
+tap the closing corner. ARchScan preserves the original room and uses the
+selected boundary as a shared wall.
+
 ### Can ARchScan import DXF?
 
 No. ARchScan exports DXF 2D but does not currently import DXF.
@@ -478,7 +502,7 @@ Las puertas y ventanas pueden conectar dos ambientes.
 
 El nuevo ambiente utiliza la abertura seleccionada como referencia. No muevas ni edites esa abertura mientras el escáner está abierto.
 
-## 5. Continuar un contorno abierto desde cualquiera de sus extremos
+## 5. Continuar desde esquinas
 
 Un ambiente sin terminar puede continuarse desde su primer o último vértice.
 
@@ -490,6 +514,22 @@ Un ambiente sin terminar puede continuarse desde su primer o último vértice.
 6. Cerrá el ambiente cuando el contorno esté completo.
 
 Los vértices intermedios no pueden utilizarse para bifurcar el contorno. Esto evita geometrías ambiguas o con cruces.
+
+### Crear un ambiente nuevo entre dos esquinas de un ambiente cerrado
+
+1. Tocá directamente en el plano general la esquina inicial.
+2. Seleccioná **Continuar escaneo desde aquí**.
+3. Tocá la esquina donde debe cerrar el ambiente nuevo. El inicio y el cierre
+   se resaltan con colores diferentes.
+4. Usá dos dedos o los controles de zoom si necesitás mover o achicar el plano
+   antes de elegir la esquina final.
+5. Confirmá la selección y escaneá el nuevo contorno exterior.
+6. Cerrá el ambiente nuevo y verificá el límite compartido en el plano general.
+
+La operación crea un ambiente nuevo. No reemplaza el ambiente de origen ni
+elimina su pared, medidas, puertas o ventanas existentes. Si una esquina
+coincide entre varios ambientes, ARchScan utiliza la del ambiente seleccionado
+para la continuación.
 
 ## 6. Calibrar vértices al continuar con AR
 
@@ -554,6 +594,9 @@ Al eliminar una abertura conectada se quita la conexión, sin eliminar ninguno d
 4. Confirmá la ubicación.
 
 Los ambientes conectados mediante aberturas o paredes compartidas se mueven como un grupo para conservar sus relaciones existentes.
+Usá dos dedos para desplazar o ampliar el plano mientras organizás los
+ambientes. También están disponibles los controles de alejar, acercar y
+restablecer la vista para realizar ajustes precisos.
 
 ### Alinear paredes
 
@@ -739,6 +782,12 @@ El flujo actual agrega puertas y ventanas desde el plano general después de reg
 ### ¿Puedo continuar un ambiente sin terminar desde cualquiera de sus extremos?
 
 Sí. Seleccioná el primer o último vértice del contorno abierto. Los vértices intermedios no se utilizan para crear bifurcaciones.
+
+### ¿Puedo crear un ambiente nuevo entre dos esquinas de otro ambiente?
+
+Sí. Tocá la esquina inicial, seleccioná **Continuar escaneo desde aquí** y
+después tocá la esquina final. ARchScan conserva el ambiente original y utiliza
+el límite seleccionado como pared compartida.
 
 ### ¿ARchScan puede importar DXF?
 

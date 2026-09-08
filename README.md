@@ -30,6 +30,9 @@ La preparación comercial y los pasos de Google Play están en [Freemium y Googl
   ARCore y ARKit.
 - Continuación desde aberturas y referencia del plano anterior.
 - Continuación de contornos abiertos desde cualquiera de sus extremos.
+- Continuación desde ambientes cerrados mediante selección táctil de la esquina
+  inicial y la esquina final. El recorrido crea un ambiente nuevo y conserva
+  intactos el ambiente original, sus aberturas y la pared compartida.
 - En ARCore/ARKit, calibración con el vértice anterior y el vértice inicial para conservar traslación, orientación y paredes inclinadas al reanudar una sesión.
 - Deshacer/rehacer del escaneo y protección frente a aberturas que pierden su pared.
 
@@ -45,6 +48,9 @@ Las siguientes herramientas se aplican a proyectos provenientes de Basic, ARCore
 - Botones de ambientes registrados, puerta, ventana, deshacer y rehacer.
 - Ubicación táctil de aberturas sobre paredes reales, incluida la pared de cierre.
 - Movimiento y rotación de ambientes, grupos conectados y alineación de paredes.
+- Navegación con dos dedos y controles de acercar, alejar y restablecer la vista
+  para mantener visible el plano durante la edición.
+- Acciones organizadas en pares consistentes: puerta/ventana y deshacer/rehacer.
 - Detección de paredes compartidas completas y parciales.
 - Historial reversible de edición; los contornos abiertos no suman superficie.
 
@@ -139,7 +145,7 @@ Pendientes principales:
 
 - Validación física completa de Basic, ARCore y ARKit.
 - Confirmar que no reaparece la pantalla roja al cerrar o editar diálogos.
-- Validar físicamente la continuidad sin giro de orientación, incluso desde extremos invertidos y paredes inclinadas, además del cierre correcto y la alineación de ambientes.
+- Validar físicamente la continuidad sin giro de orientación, incluida la selección táctil entre esquinas compartidas, el cierre correcto y la conservación de la pared original.
 - Pruebas de guardado, reapertura, deshacer/rehacer y exportación de contornos abiertos.
 - Ejecutar el workflow firmado: conserva SHA-256, identidad de compilación, manifiesto fusionado, permisos y auditoría estricta de alineación de bibliotecas nativas para páginas de 16 KB. Luego completar los formularios de tienda.
 - Definir e implementar Pro antes de ofrecer compras.
