@@ -139,6 +139,24 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('continuation start and closing corners are selected on plan',
+      (tester) async {
+    await mount(tester);
+    await tester.tapAt(location(tester, 0, 0));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('plan-continue-scan')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Choose the corner where you want to close'),
+        findsOneWidget);
+    expect(find.byType(BottomSheet), findsNothing);
+
+    await tester.tapAt(location(tester, 4, 3));
+    await tester.pumpAndSettle();
+    expect(find.byType(AlertDialog), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('edit selected wall in place, confirm, delete and undo',
       (tester) async {
     final provider = await mount(tester);
